@@ -1,4 +1,5 @@
 *.nc
-.html
-.grib2
+*.html
+*.grib2
+*.rtf
 .DS_Store
