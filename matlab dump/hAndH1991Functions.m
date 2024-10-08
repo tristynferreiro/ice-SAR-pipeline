@@ -60,7 +60,7 @@ handh.rangeVelocityMTF = @rangeVelocityMTF;
 handh.sarImageAmplitudeSpectrum = @sarImageAmplitudeSpectrum;
 handh.velocityBunchingMTF = @velocityBunchingMTF;
 handh.sarImagingMTF = @sarImagingMTF;
-handh.linearMappingTransform = @linearMappingTransform; %SAR image variance spectrum
+handh.sarImageVarianceSpectrumLinearMappingTransform = @sarImageVarianceSpectrumLinearMappingTransform; %SAR image variance spectrum
 
 % General Nonlinear Mapping Relation
 handh.orbitalVelocityCovarianceFunction = @orbitalVelocityCovarianceFunction;
@@ -97,6 +97,8 @@ function [look,k_l] = klUsingSARlook(sar_look_metadata,k_y)
     end
 end
 
+% -------------------------------------------------------------------
+%% SAR Imaging of Ocean Waves: Frozen Surface Contribution (pg.10,715 - 10,716)
 
 function TR_k = rarMTF(Tt_k, Th_k)
     %[Eq.4, H&H 1991]
@@ -106,16 +108,22 @@ end
 function Tt_k = tiltMTF(sar_polarisation, sar_incidence_angle_degrees, k_l)
     %[Eq.5, H&H 1991]
     if(strcmp(sar_polarisation, 'VV') && sar_incidence_angle_degrees<=60)
-        Tt_k = 4i .* k_l * cotd(sar_incidence_angle_degrees) *(1 + sind(sar_incidence_angle_degrees)^2)^(-1); 
+        Tt_k = 4i .* k_l .* cotd(sar_incidence_angle_degrees) .* (1 + sind(sar_incidence_angle_degrees).^2).^(-1); 
     elseif (strcmp(sar_polarisation, 'HH') && sar_incidence_angle_degrees<=60)
-        Tt_k = 8i.*k_l*(sind(2*sar_incidence_angle_degrees))^(-1); 
+        Tt_k = 8i.* k_l .* (sind(2 .* sar_incidence_angle_degrees)).^(-1); 
     end
 end
 
 function Th_k = hydrodynamicMTF(omega, mu, k, k_y)
     %[Eq.6, H&H 1991] 
+    % from git 4.5 .* omega .* k_y.^2 .* (omega - mu * 1i) ./ abs(k) .* (omega.^2 + mu.^2)
     Th_k = (omega - (1i * mu)) ./ (omega.^2 + mu.^2) .* 4.5 .* k .* omega .* ((k_y.^2./k.^2));
     % We do not use the complex feedback factor: Y_r+1i*Y_i term.
+end
+
+function PR_k = rarImageVarianceSpectrum(TR_k, F_k, TR_k_neg, F_k_neg)
+    %[Eq.13, H&H 1991]
+    PR_k = 0.5 .* (abs(TR_k).^2.*F_k + abs(TR_k_neg).^2.*F_k_neg);
 end
 
 % function Th_k = hydrodynamicMTFwithComplexFeedback(omega, mu, k, k_y, Y_r, Y_i)
@@ -128,6 +136,8 @@ end
 %     IR_k = TR_k*zeta_k+conj(Tr_k_neg,zeta_k_neg);
 % end
 
+% -------------------------------------------------------------------
+%% SAR Imaging of Ocean Waves: Motion Effects (pg.10,716 - 10,717)
 function Tv_k = rangeVelocityMTF(omega, sar_incidence_angle_degrees, kl, k)
     %[Eq.17, H&H 1991]
     Tv_k = -1 * omega .* ((sind(sar_incidence_angle_degrees) .* (kl ./ abs(k))) + (1i .* cosd(sar_incidence_angle_degrees))); 
@@ -146,6 +156,11 @@ end
 function TS_k = sarImagingMTF(TR_k, Tvb_k)
     %[Eq.27, H&H 1991]
     TS_k = TR_k + Tvb_k;
+end
+
+function PS_k = sarImageVarianceSpectrumLinearMappingTransform(TS_k, F_k, TS_k_neg, F_k_neg)
+    %[Eq.26, H&H 1991]
+    PS_k = (abs(TS_k).^2 .* F_k./2) + (abs(TS_k_neg).^2 .* F_k_neg./2);
 end
 
 % -------------------------------------------------------------------
@@ -199,10 +214,7 @@ function PS_2n_minus_2 = spectralExpansion2nMinus2Term(n, fv_r, fRv_r, fRv_neg_r
     
 end
 
-function PS_k = linearMappingTransform(TS_k, F_k, TS_k_neg, F_k_neg)
-    %[Eq.26, H&H 1991]
-    PS_k = (abs(TS_k).^2 .* F_k./2) + (abs(TS_k_neg).^2 .* F_k_neg./2);
-end
+
 
 
 function xi_sqr = meanSquareAzimuthalDisplacement(beta, fv_r)
@@ -246,10 +258,7 @@ end
 % end
 
 
-function PR_k = rarImageVarianceSpectrum(TR_k, F_k, TR_k_neg, F_k_neg)
-    %[Eq.13, H&H 1991]
-    PR_k = 0.5 * (abs(TR_k)^2*F_k + abs(TR_k_neg)^2*F_k_neg);
-end
+
 
 function xi = azimuthalDisplacement(beta,v)
     % Azimuthal displacement of the apparent position backscattering
