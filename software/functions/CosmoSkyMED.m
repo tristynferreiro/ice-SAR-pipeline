@@ -19,6 +19,7 @@ classdef CosmoSkyMED
 
     properties
         Filepath
+        ProductType
         AcquisitionMode
         RefSlantRange
         RefSlantRangeExponent
@@ -28,7 +29,6 @@ classdef CosmoSkyMED
         RangeSpreadingLossCompensationFlag
         IncidenceAngleCompensationFlag
         CalibrationConstantCompensationFlag
-
     end
 
     methods
@@ -36,6 +36,8 @@ classdef CosmoSkyMED
             %COSMOSKYMED Construct an instance of this class
             %   Detailed explanation goes here
             obj.Filepath = filepath;
+
+            obj.ProductType = product_type;
             
             required_attributes = ["ACQUISITION_MODE",...   % Acquisition mode
                       "ref_slant_range", ...
@@ -131,6 +133,31 @@ classdef CosmoSkyMED
         function dB_sar_image = convertToDbs(linear_sar_image)
             %CONVERTTODBS convert the linear image to decibels
             dB_sar_image = 10*log10(linear_sar_image);
+        end
+
+        function [acquisition_start_datetime, acquisition_stop_datetime] = getAcquisitiontime(obj)
+            % Extract the acquisition times as a datetime object
+            
+            % Names of the required attributes
+            required_attributes = ["start_date","stop_date"];
+
+            if obj.ProductType=="CSG"
+                % List of required attributes
+                % required_attributes = "Abstracted_Metadata:"+required_attributes;
+                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
+            elseif obj.ProductType=="CSK"
+                metadata_attributes = ncinfo(obj.Filepath).Attributes; 
+            end
+            
+            % Find where in the structure the required attributes are 
+            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
+
+            % Return the times
+            acquisition_information = metadata_attributes(matching_row_number(1)).Value;
+            acquisition_start_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
+            acquisition_information = metadata_attributes(matching_row_number(2)).Value;
+            acquisition_stop_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
+            
         end
         
     end
