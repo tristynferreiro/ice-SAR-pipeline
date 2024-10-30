@@ -4,13 +4,15 @@ classdef Sentinel1A
 
     properties
         Filepath
-        CaptureDate
+        AcquisitionStartDatetime
+        AcquisitionStopDatetime
         CaptureTime
         Polarisation
-        Look
+        LookDirection
         SlantRange
         SatelliteVelocity
-        Beta
+        % RangeResolution
+        % AzimuthResolution
 
     end
 
@@ -27,13 +29,6 @@ classdef Sentinel1A
             metadata_attributes = metadata.Attributes;
             
             % Set the object properties using the metadata
-            obj = obj.setAttributes(metadata_attributes);
-        end
-
-        function obj = setAttributes(obj,metadata_attributes)
-            %SETATTRIBUTES Set object properties from metadata in Sentinel 1A data file
-            %   metadata_attributes = the Attribute structure of the metadata MATLAB structure
-                        
             % List of required attributes
             required_attributes = ["PROC_TIME", ...                     % Capture Date
                 "first_line_time", "last_line_time", ...                % Capture Time
@@ -58,32 +53,24 @@ classdef Sentinel1A
             end
 
             % Capture Date
-            format = 'dd-MMM-yyyy HH:mm:ss.SSSSSS';
-            obj.CaptureDate = datetime(metadata_attributes(matching_row_number(1)).Value, 'InputFormat', format);
-
-            % Capture Time
-            format = 'dd-MMM-yyyy HH:mm:ss.SSSSSS';
-            captureTime(1) = datetime(metadata_attributes(matching_row_number(2)).Value, 'InputFormat', format);
-            captureTime(2) = datetime(metadata_attributes(matching_row_number(3)).Value, 'InputFormat', format);
-            obj.CaptureTime = mean(captureTime);
+            obj.AcquisitionStartDatetime = datetime(metadata_attributes(matching_row_number(2)).Value, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
+            obj.AcquisitionStopDatetime = datetime(metadata_attributes(matching_row_number(3)).Value, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
             
+            % Capture Time
+            obj.CaptureTime = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
             % Polarisation
             obj.Polarisation = [...
                 metadata_attributes(matching_row_number(4)).Value,...
                 metadata_attributes(matching_row_number(5)).Value];
 
             % Look
-            obj.Look = metadata_attributes(matching_row_number(6)).Value;
+            obj.LookDirection = metadata_attributes(matching_row_number(6)).Value;
 
             % Radar Slant Range
             obj.SlantRange = metadata_attributes(matching_row_number(7)).Value;
             
             % Satellite Velocity in m/s
             obj = obj.getSatelliteVelocity(metadata_attributes,matching_row_number);
-
-            % Beta
-            obj.Beta = obj.SlantRange/obj.SatelliteVelocity;
-            
         end
 
         function obj = getSatelliteVelocity(obj,metadata_attributes,matching_row_number)
@@ -118,9 +105,9 @@ classdef Sentinel1A
             obj.SatelliteVelocity = sqrt(meta_orb_x.^2 + meta_orb_y.^2 + meta_orb_z.^2);
  
         end
-
-        function sar_data = getSARdata(obj,polarisation)
-            %GETSARDATA Summary of this method goes here
+ 
+        function sar_data = getSARImage(obj,polarisation)
+            %GETSARImage Summary of this method goes here
             %   Detailed explanation goes here
             [found, ~] = ismember(obj.Polarisation,polarisation);
             if(~found)
@@ -130,17 +117,11 @@ classdef Sentinel1A
             end
         end
         
-        function thermal_calibrated_image = thermalNoiseCalibration(sar_image)
-            %THERMALNOISECALIBRATION Preprocessing procedure
-            %   Used to remove thermal noise (speckle) from image.
-            
-        end
-
-        function [radiometric_calibrated_image] = radiometricCalibration(sar_image)
-            %RADIOMETRICCALIBRATION Preprocessing procedure
-            %   more detail....
-            
-        end
+        % function thermal_calibrated_image = thermalNoiseCalibration(sar_image)
+        %     %THERMALNOISECALIBRATION Preprocessing procedure
+        %     %   Used to remove thermal noise (speckle) from image.
+        % 
+        % end
 
         function incidence_angle_grid_full = getIncidenceAngleGrid(obj)
             %GETINCIDENCEANGLEGRID Summary of this method goes here

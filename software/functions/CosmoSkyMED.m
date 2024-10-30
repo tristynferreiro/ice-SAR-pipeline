@@ -20,6 +20,17 @@ classdef CosmoSkyMED
     properties
         Filepath
         ProductType
+
+        AcquisitionStartDatetime
+        AcquisitionStopDatetime
+        Polarisation
+        LookDirection
+        RangeResolution
+        AzimuthResolution
+        SlantRange
+        SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
+    
+
         AcquisitionMode
         RefSlantRange
         RefSlantRangeExponent
@@ -47,7 +58,11 @@ classdef CosmoSkyMED
                       "rescaling_factor",...
                       "range_spread_comp_flag",...          % Range Spreading Loss Compensation Flag
                       "inc_angle_comp_flag",...
-                      "abs_calibration_flag"...
+                      "abs_calibration_flag",...
+                      "mds1_tx_rx_polar",...
+                      "antenna_pointing",...
+                      "range_spacing","azimuth_spacing",...
+                      "slant_range_to_first_pixel"...
                 ];  
 
             if product_type=="CSG"
@@ -92,7 +107,28 @@ classdef CosmoSkyMED
 
             % Calibration Constant Compensation Flag - K_flag
             obj.CalibrationConstantCompensationFlag = metadata_attributes(matching_row_number(9)).Value;
+            
+            % Polarisation
+            obj.Polarisation = metadata_attributes(matching_row_number(10)).Value;
 
+            % Look Direction (antenna pointing direction)
+            obj.LookDirection = metadata_attributes(matching_row_number(11)).Value;
+
+            % Resolution
+            obj.RangeResolution = metadata_attributes(matching_row_number(12)).Value;
+            obj.AzimuthResolution = metadata_attributes(matching_row_number(13)).Value;
+            
+            % Slant Rnage
+            obj.SlantRange = metadata_attributes(matching_row_number(14)).Value;
+
+            % Acquisition times
+            [obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime] = obj.getAcquisitiontime;
+   
+        end
+
+        function [sar_data] = getSARImage(obj)
+            %GETImage Get the sar data from file
+            sar_data = ncread(obj.Filepath,'Intensity'); 
         end
 
         function [radiometric_calibrated_image] = radiometricCalibration(obj,sar_image)
