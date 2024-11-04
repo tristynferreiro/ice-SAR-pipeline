@@ -1,4 +1,4 @@
-function [px, py] = PolarContour(dirSpec, freq, maxf)
+function [px, py] = PolarContour(dirSpec, freq, maxf, dir, contourLines)
 % PolarContour creates a polar/contour plot for the presentation of directional data.
 % This plot was originally designed to plot directional frequency spectra from ocean waves.
 %   dirSpec - A matrix of directional frequency data, with frequency data
@@ -8,8 +8,9 @@ function [px, py] = PolarContour(dirSpec, freq, maxf)
 %   maxf    - The maximum frequency to be displayed on the plot.
 
 % Define direction bins based on dirSpec dimensions (in radians)
-temp = 360 - (360 / size(dirSpec, 1));
-a = linspace(0, temp, size(dirSpec, 1));                                          
+% temp = 360 - (360 / size(dirSpec, 1));
+% a = linspace(0, temp, size(dirSpec, 1)); 
+a = dir;
 dirs = degtorad(a);
 
 % Find the index of the frequencies less than or equal to maxf
@@ -27,7 +28,7 @@ h = polar(px, py);
 delete(h);                                                                  
 hold on;                                                                     
 % Plot the contour graph onto the polar axis
-contour(px, py, dirSpecAtFreq, 100);  
+contour(px, py, dirSpecAtFreq, contourLines);  
 % Plot aesthetics
 % Rotate and flip the plot to enable 0 degrees = North
 view([90 -90]);

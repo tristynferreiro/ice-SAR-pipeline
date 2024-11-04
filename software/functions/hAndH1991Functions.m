@@ -107,10 +107,10 @@ end
 
 function Tt_k = tiltMTF(sar_polarisation, sar_incidence_angle_degrees, k_l)
     %[Eq.5, H&H 1991]
-    if(strcmp(sar_polarisation, 'VV') && sar_incidence_angle_degrees<=60)
-        Tt_k = 4i .* k_l .* cotd(sar_incidence_angle_degrees) .* (1 + sind(sar_incidence_angle_degrees).^2).^(-1); 
-    elseif (strcmp(sar_polarisation, 'HH') && sar_incidence_angle_degrees<=60)
-        Tt_k = 8i.* k_l .* (sind(2 .* sar_incidence_angle_degrees)).^(-1); 
+    if(strcmp(sar_polarisation, 'VV') && all(sar_incidence_angle_degrees <= 60, 'all'))
+        Tt_k = 4i .* k_l .* cotd(sar_incidence_angle_degrees) ./(1 + sind(sar_incidence_angle_degrees).^2); 
+    elseif (strcmp(sar_polarisation, 'HH') && all(sar_incidence_angle_degrees <= 60, 'all'))
+        Tt_k = 8i.* k_l ./ (sind(2 .* sar_incidence_angle_degrees)); 
     end
 end
 
