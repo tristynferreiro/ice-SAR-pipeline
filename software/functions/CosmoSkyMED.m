@@ -29,7 +29,7 @@ classdef CosmoSkyMED
         AzimuthResolution
         SlantRange
         SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
-        %SceneOrientationAngle
+        SceneOrientationAngle
         %Ascending/Descending 
 
         AcquisitionMode
@@ -124,6 +124,9 @@ classdef CosmoSkyMED
 
             % Acquisition times
             [obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime] = obj.getAcquisitiontime;
+
+            % Scene Orientation Angle 
+            obj.SceneOrientationAngle = obj.getSceneOrientationAngle;
    
         end
 
@@ -150,6 +153,25 @@ classdef CosmoSkyMED
             acquisition_information = metadata_attributes(matching_row_number(2)).Value;
             acquisition_stop_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
             
+        end
+
+        function [scene_orientation_angle] = getSceneOrientationAngle(obj)
+            % Extract the acquisition times as a datetime object
+            
+            % Names of the required attributes
+            required_attributes = "Scene_Orientation";
+
+            if obj.ProductType=="CSG"
+                % List of required attributes
+                % required_attributes = "Abstracted_Metadata:"+required_attributes;
+                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
+            elseif obj.ProductType=="CSK"
+                metadata_attributes = ncinfo(obj.Filepath,'Metadata_Group').Groups(2).Groups(1).Attributes; 
+            end
+            
+            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
+            scene_orientation_angle = metadata_attributes(matching_row_number(1)).Value; % [degrees]
+            % IN Sentinel this is called the "centre_heading" and "centre_heading2"  
         end
 
         function [sar_data] = getSARImage(obj)
