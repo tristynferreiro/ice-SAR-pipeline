@@ -27,6 +27,7 @@ classdef CosmoSkyMED
         LookDirection
         RangeResolution
         AzimuthResolution
+        SlantRangeToFirstPixel
         SlantRange
         SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
         SceneOrientationAngle
@@ -120,7 +121,7 @@ classdef CosmoSkyMED
             obj.AzimuthResolution = metadata_attributes(matching_row_number(13)).Value;
             
             % Slant Rnage
-            obj.SlantRange = metadata_attributes(matching_row_number(14)).Value;
+            obj.SlantRangeToFirstPixel = metadata_attributes(matching_row_number(14)).Value;
 
             % Acquisition times
             [obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime] = obj.getAcquisitiontime;
@@ -155,6 +156,10 @@ classdef CosmoSkyMED
             
         end
 
+        function obj = setSlantRange(obj,slant_range)
+            obj.SlantRange = slant_range;
+        end
+
         function [scene_orientation_angle] = getSceneOrientationAngle(obj)
             % Extract the acquisition times as a datetime object
             
@@ -173,10 +178,16 @@ classdef CosmoSkyMED
             scene_orientation_angle = metadata_attributes(matching_row_number(1)).Value; % [degrees]
             % IN Sentinel this is called the "centre_heading" and "centre_heading2"  
         end
+        
+        function [sar_data] = getSlantRangeToTransect(obj)
+            %GETImage Get the sar data from file
+            sar_data = ncread(obj.Filepath,'Amplitude'); 
+        end
+
 
         function [sar_data] = getSARImage(obj)
             %GETImage Get the sar data from file
-            sar_data = ncread(obj.Filepath,'Intensity'); 
+            sar_data = ncread(obj.Filepath,'Amplitude'); 
         end
 
         function [radiometric_calibrated_image] = radiometricCalibration(obj,sar_image)

@@ -1,4 +1,4 @@
-function [ps_k_nl] = inversion(lin_ord, cosmo, sar_look_metadata,first_guess_kx, first_guess_ky, first_guess_k, first_guess_omega, first_guess_wave_number_spectrum, sar_center_incidence_angle_degrees, sar_sub_transect_size)
+function [ps_k_nl] = inversion(lin_ord, cosmo,first_guess_kx, first_guess_ky, first_guess_k, first_guess_omega, first_guess_wave_number_spectrum, sar_center_incidence_angle_degrees, sar_sub_transect_size)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     %% Vars
@@ -30,13 +30,13 @@ function [ps_k_nl] = inversion(lin_ord, cosmo, sar_look_metadata,first_guess_kx,
     mu = 0.5;
     
     % k in radar look direction variable
-    [sar_look,handh_kl] = handh.klUsingSARlook(sar_look_metadata,first_guess_kx);
+    [sar_look,handh_kl] = handh.klUsingSARlook(cosmo.LookDirection,first_guess_kx);
     
     % Tilt MTF
     Tt_k = handh.tiltMTF(sar_polarisation, sar_center_incidence_angle_degrees,handh_kl); % [Eq.5, H&H 1991]
 
     % Hydrodynamic MTF
-    Th_k = ( (first_guess_omega - i * mu) ./ (first_guess_omega.^2 + mu^2) ) .* 4.5 .* first_guess_k .* first_guess_omega .* (first_guess_kx.^2 ./ first_guess_k.^2);
+    Th_k = ( (first_guess_omega - 1i * mu) ./ (first_guess_omega.^2 + mu^2) ) .* 4.5 .* first_guess_k .* first_guess_omega .* (first_guess_kx.^2 ./ first_guess_k.^2);
     
     % RAR MTF calculation
     TR_k = handh.rarMTF(Tt_k,Th_k); % [Eq.4, H&H 1991]
@@ -75,12 +75,12 @@ function [ps_k_nl] = inversion(lin_ord, cosmo, sar_look_metadata,first_guess_kx,
 
     % Quasilinear
     PS_1 = PS_k_linear; % [Eq.55, H&H 1991]
+
     % Add filter to filter out high frequencies
     PS_ql = exp(-1 .* first_guess_ky.^2 .* xi_sqr) .* PS_1; % [Eq.56, H&H 1991]
 
     %% Spectral series expansion 
     % Initialize variables (assuming they are defined elsewhere in your script)
-    % lin_ord = 20;
     fv = fv_r;
     frv = fRv_r;
     frv_r = rot90(fRv_r,2);
