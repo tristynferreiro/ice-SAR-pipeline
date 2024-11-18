@@ -230,7 +230,13 @@ classdef CosmoSkyMED
             dB_sar_image = 10*log10(linear_sar_image);
         end
 
-        
+        function azimuth_to_north_angle = azimuthToNorthAngleConversion(obj)
+            % this is the angle between the azimuth plane of the SAR image
+            % and the true north direction.
+            if obj.LookDirection == "right"
+                azimuth_to_north_angle = 180 - obj.SceneOrientationAngle ; % degrees
+            end
+        end
         
     end
 end
