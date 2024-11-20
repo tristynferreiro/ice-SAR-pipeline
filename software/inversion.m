@@ -1,4 +1,4 @@
-function [ps_k_nl] = inversion(lin_ord, cosmo,first_guess_kx, first_guess_ky, first_guess_k, first_guess_omega, first_guess_wave_number_spectrum, sar_center_incidence_angle_degrees, sar_sub_transect_size)
+function [ps_k_nl, TS_k, xi_sqr] = inversion(lin_ord, cosmo,first_guess_kx, first_guess_ky, first_guess_k, first_guess_omega, first_guess_wave_number_spectrum, sar_center_incidence_angle_degrees, sar_sub_transect_size)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     %% Vars
