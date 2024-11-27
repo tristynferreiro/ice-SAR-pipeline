@@ -89,35 +89,7 @@ classdef ERA5
 
         end
 
-        function era5_d2fd = getSlicedWaveSpectrumD2Fd(obj,sar_center_latitude,sar_center_longitude,sar_time)
-            % This method returns the ERA5 wave spectrum, E(f, theta)
-            % sliced at the best match of the specified lat,lon and time
-            % NOTE: lat and lon should be center of the sar transect.
-
-            era5_d2fd_all_5dims = obj.getAllWaveSpectrumD2FD;
-            era5_lon = obj.getLongitude;
-            era5_lat = obj.getLatitude;
-            
-            lat_position_match = find(era5_lat == ceil(sar_center_latitude));
-            lon_position_match = find(era5_lon == round(sar_center_longitude));
-
-            
-            era5_time = obj.getTime;
-
-            % Find the slice that matches the SAR image
-            era5_date_only = dateshift(era5_time, 'start', 'day');
-            sar_date_only = dateshift(sar_time, 'start', 'day');
-            time_position_match = era5_date_only == sar_date_only;
-            time_position_match = find(hour(era5_time(time_position_match)) == hour(sar_time));
-
-            % Slice the data
-            era5_d2fd(:,:) = era5_d2fd_all_5dims(lon_position_match,lat_position_match,:,:,time_position_match);
-            
-            % Transpose the data so that it is [dir frq] not [frq dir]
-            era5_d2fd = era5_d2fd';
-
-        end
-
+        
         function era5_direction_bins_adjusted = getDirectionsInSARGeometry(obj, sar_azimuth_to_north_angle)
             % We need to rotate the wave spectrum so that it is aligned with the angle
             % at which the SAR data has been taken.
@@ -127,6 +99,36 @@ classdef ERA5
 
             era5_direction_bins_adjusted = obj.DirectionBins + sar_azimuth_to_north_angle;
         end
+        
+        function [era5_d2fd, lat_match_index,lon_match_index, time_match_index] = getSlicedWaveSpectrumD2Fd(obj,sar_center_latitude,sar_center_longitude,sar_time)
+            % This method returns the ERA5 wave spectrum, E(f, theta)
+            % sliced at the best match of the specified lat,lon and time
+            % NOTE: lat and lon should be center of the sar transect.
+
+            era5_d2fd_all_5dims = obj.getAllWaveSpectrumD2FD;
+            era5_lon = obj.getLongitude;
+            era5_lat = obj.getLatitude;
+            
+            lat_match_index = find(era5_lat == ceil(sar_center_latitude));
+            lon_match_index = find(era5_lon == ceil(sar_center_longitude));
+
+            
+            era5_time = obj.getTime;
+
+            % Find the slice that matches the SAR image
+            era5_date_only = dateshift(era5_time, 'start', 'day');
+            sar_date_only = dateshift(sar_time, 'start', 'day');
+            time_match_index = era5_date_only == sar_date_only;
+            time_match_index = find(hour(era5_time(time_match_index)) == hour(sar_time));
+
+            % Slice the data
+            era5_d2fd(:,:) = era5_d2fd_all_5dims(lon_match_index,lat_match_index,:,:,time_match_index);
+            
+            % Transpose the data so that it is [dir frq] not [frq dir]
+            era5_d2fd = era5_d2fd';
+
+        end
+
         
         function outputArg = method1(obj,inputArg)
             %METHOD1 Summary of this method goes here

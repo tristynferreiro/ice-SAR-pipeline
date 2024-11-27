@@ -29,6 +29,7 @@ classdef CosmoSkyMED
         AzimuthResolution
         SlantRangeToFirstPixel
         SlantRange
+        IncidenceAngle
         SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
         SceneOrientationAngle
         %Ascending/Descending 
@@ -156,8 +157,28 @@ classdef CosmoSkyMED
             
         end
 
-        function obj = setSlantRange(obj,slant_range)
-            obj.SlantRange = slant_range;
+        function obj = setSlantRange(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            c = physconst('LightSpeed');
+            RTT = c /2;
+            slant_range_time = ncread(obj.Filepath,"slant_range_time") .* 10e-9;
+            slant_range_time = slant_range_time(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
+
+            obj.SlantRange = mean(slant_range_time(:)) .* RTT;
+        end
+
+        function obj = setIncidenceAngle(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            incident_angle_grid = ncread(obj.Filepath,"incident_angle");
+
+            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
+            % % get center pixel
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees *
+            % ones(sar_sub_transect_size); % greate matrix
+
+            obj.IncidenceAngle = mean(incidence_angle_degrees_transect(:));
         end
 
         function [scene_orientation_angle] = getSceneOrientationAngle(obj)
@@ -183,7 +204,6 @@ classdef CosmoSkyMED
             %GETImage Get the sar data from file
             sar_data = ncread(obj.Filepath,'Amplitude'); 
         end
-
 
         function [sar_data] = getSARImage(obj)
             %GETImage Get the sar data from file
