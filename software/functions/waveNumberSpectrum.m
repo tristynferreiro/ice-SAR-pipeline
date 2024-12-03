@@ -1,4 +1,4 @@
-function [era5_E_kx_ky, Jacobian,era5_kx_matrix,era5_ky_matrix] = waveNumberSpectrum(era5_d2fd,era5_omega,era5_k, era5_direction_bins)
+function [era5_E_kx_ky, Jacobian,era5_kx_matrix,era5_ky_matrix] = waveNumberSpectrum(era5_d2fd,era5_omega,era5_k, era5_direction_bins_degrees)
 %WaveNumberSpectrum convert a wave spectrum E(frequency, direction) to k domain, E(kx,ky)
 %   According to Holthuijsen: "Remote-sensing and numerical wave models can 
 %   estimate the full two-dimensional spectrum, usually the wave-number 
@@ -32,8 +32,8 @@ function [era5_E_kx_ky, Jacobian,era5_kx_matrix,era5_ky_matrix] = waveNumberSpec
     % horizontal axis (kx) is range. THIS IS DIFFERENT TO THE CASE OF H&H BUT
     % CHANGING THINGS HERE WILL MEAN NO ISSUES GOING FORWARD. IT IS IMPORTANT
     % TO NOTE THIS CONVENTION IN THE BEGINNING.
-    era5_kx_matrix = era5_k .* sind(era5_direction_bins);
-    era5_ky_matrix = era5_k .* cosd(era5_direction_bins);
+    era5_kx_matrix = era5_k .* sind(era5_direction_bins_degrees);
+    era5_ky_matrix = era5_k .* cosd(era5_direction_bins_degrees);
 
     %% Plot the two versions of the wave number spectrum
     % CHECK THE PLOTTING DIRECTION COMPARED TO POLAR & OCEANOGRAPHY STANDARDS

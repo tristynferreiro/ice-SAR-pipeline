@@ -50,5 +50,6 @@ function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, s
     k_filt = exp(-(xx.^2 + yy.^2) / (width_of_gaussian_lobe)^2); % width_of_gaussian_lobe: Controls the spread of the Gaussian. A larger width means the Gaussian will be wider and smoother.
     k_filt = k_filt/sum(k_filt(:));
     sar_spectrum = conv2(sar_spectrum, k_filt, 'same');
+
     
 end

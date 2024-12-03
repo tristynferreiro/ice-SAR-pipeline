@@ -81,7 +81,6 @@ function [S_OUT, P_OUT,J] = inverti_sea_HH91_MIO(S_INP, P_obs1, P_guess, TS_k, f
     
     P_ice = P_obs;
 
-
     S_ice = S_guess;
 
 
@@ -105,10 +104,10 @@ function [S_OUT, P_OUT,J] = inverti_sea_HH91_MIO(S_INP, P_obs1, P_guess, TS_k, f
     Jmax = J(1);
 
     S_best = 0;
-    P_best =0;
+    P_best = 0;
 
     % Iterative inversion
-    for iterazione = 1:20
+    for iterazione = 2:20
         B = 1e-2 * max(S_guess);
         
         mu_k = mu0 ./ (B + S_guess).^2;
@@ -184,12 +183,12 @@ function [S_OUT, P_OUT,J] = inverti_sea_HH91_MIO(S_INP, P_obs1, P_guess, TS_k, f
         % J(iterazione) = int_tabulated_2d(kx, ky, anello * P_obs .* (P_obs - P_tmp).^2) + ...
         % int_tabulated_2d(kx, ky, anello * mu_k .* (S_tmp - S_guess).^2);
         term1_tmp = (P_tmp - P_obs).^2 .*  P_obs .* anello;
-        % term2_tmp = ( (S_tmp - S_guess) ./ (B + S_guess) ).^2 .* anello;
-        term2_tmp = anello .* mu_k .*(S_tmp - S_guess).^2;
-        J(iterazione+1) = trapz(kx, trapz(ky, term1_tmp,1),2) + trapz(kx, trapz(ky, mu .* term2_tmp,1),2); % MAYBE just check this trapz() 
+        term2_tmp = ( (S_tmp - S_guess) ./ (B + S_guess) ).^2 .* anello;
+        % term2_tmp = anello .* mu_k .*(S_tmp - S_guess).^2;
+        J(iterazione) = trapz(kx, trapz(ky, term1_tmp,1),2) + trapz(kx, trapz(ky, mu .* term2_tmp,1),2); % MAYBE just check this trapz() 
         % J(iterazione) = trapz(kx, trapz(ky, mu .* term2_tmp,1),2);
         % J(iterazione) = trapz(kx, trapz(ky, term1_tmp,1),2); % MAYBE just check this trapz()
-        eps(iterazione+1) = trapz(kx, trapz(ky, (P_guess - P_obs).^2 .* anello ,1),2) ./ sqrt(trapz(kx, trapz(ky, (P_obs).^2 .* anello ,1),2)) ./ sqrt(trapz(kx, trapz(ky, (P_tmp).^2 .* anello ,1),2));
+        eps(iterazione) = trapz(kx, trapz(ky, (P_guess - P_obs).^2 .* anello ,1),2) ./ sqrt(trapz(kx, trapz(ky, (P_obs).^2 .* anello ,1),2)) ./ sqrt(trapz(kx, trapz(ky, (P_tmp).^2 .* anello ,1),2));
 
         if eps(iterazione) < eps_guess0
             display(iterazione)

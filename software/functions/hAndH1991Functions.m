@@ -84,14 +84,12 @@ function omega = defineGravityWaveFrequency(g,k)
     omega = sqrt(g*k);
 end 
 
-function [look,k_l] = klUsingSARlook(sar_look_direction,k_range)
+function [k_l] = klUsingSARlook(sar_look_direction,k_range)
     % This is defined on the bottom of page 10,715 after [Eq.6, H&H 1991] 
     if(isequal(sar_look_direction,"right"))
-        look = 0;
         k_l = -1*k_range;
         % k_y = -1*k_y;
-    elseif(isequal(sar_look_direction,"left"))
-        look =1;
+    elseif(isequal(sar_look_direction,"left"))s
         k_l = k_range;
         % k_y = k_y;
     end
@@ -139,7 +137,7 @@ end
 %% SAR Imaging of Ocean Waves: Motion Effects (pg.10,716 - 10,717)
 function Tv_k = rangeVelocityMTF(omega, sar_incidence_angle_degrees, k_range, k)
     %[Eq.17, H&H 1991]
-    Tv_k = -1 * omega .* ((sind(sar_incidence_angle_degrees) .* (k_range ./ abs(k))) + (1i .* cosd(sar_incidence_angle_degrees))); 
+    Tv_k = -1 .* omega .* ((sind(sar_incidence_angle_degrees) .* (k_range ./ abs(k))) + (1i .* cosd(sar_incidence_angle_degrees))); 
     Tv_k = abs(Tv_k);
 end
 
@@ -231,7 +229,7 @@ function PS_2n_minus_2 = spectralExpansion2nMinus2Term(n, fv_r, fRv_r, fRv_neg_r
     
 end
 
-function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(nonlinearity_order, PS_ql, k_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, k_range)
+function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, k_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, k_range)
     % [Eq.50, H&H 1991]
         % PS_ql = Quasilinear Mapping Transform Spectrum, this is PS_1 (the
         % first term of the nonlinearity mapping transform)\
@@ -266,49 +264,49 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(nonlinearity_
         %         PS_k = PS_k + coefficient .* PS_2n;
         %     end
         % end
-    
-        figure('Position', [100, 100, 1600, 300]);
-        title("Nonlinear order = %d",nonlinearity);
-        subplot(1,4,1);
-        contour(k_range, k_azimuth, abs(PS_2n),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Spectral Expansion Term 1, P^S_{2n}", "n = "+nonlinearity); colorbar;
-        subplot(1,4,2);
-        contour(k_range, k_azimuth, abs(PS_2n_minus_1),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 2, P^S_{2n-1}", "n = "+nonlinearity); colorbar;
-        subplot(1,4,3);
-        contour(k_range, k_azimuth, abs(PS_2n_minus_2),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 3, P^S_{2n-2}", "n = "+nonlinearity); colorbar;
-        subplot(1,4,4);
-        contour(k_range, k_azimuth, abs((sum)),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Sum of the nonlinear terms, P^S_{sum of terms}", "n = "+nonlinearity); colorbar;
-        
+        if plotsON
+            figure('Position', [100, 100, 1600, 300]);
+            title("Nonlinear order = %d",nonlinearity);
+            subplot(1,4,1);
+            contour(k_range, k_azimuth, abs(PS_2n),40);
+            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Spectral Expansion Term 1, P^S_{2n}", "n = "+nonlinearity); colorbar;
+            subplot(1,4,2);
+            contour(k_range, k_azimuth, abs(PS_2n_minus_1),40);
+            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 2, P^S_{2n-1}", "n = "+nonlinearity); colorbar;
+            subplot(1,4,3);
+            contour(k_range, k_azimuth, abs(PS_2n_minus_2),40);
+            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 3, P^S_{2n-2}", "n = "+nonlinearity); colorbar;
+            subplot(1,4,4);
+            contour(k_range, k_azimuth, abs((sum)),40);
+            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Sum of the nonlinear terms, P^S_{sum of terms}", "n = "+nonlinearity); colorbar;
+        end
          % Update ps_k
         ps_k = ps_k + sum;
     end
     
     % Non-linear spectrum calculation [Eq.50, H&H 1991]
     ps_nl_only = ps_k .* exp(-xi_sqr * k_azimuth.^2); % This factor is for converting from 2pi to spatial domain (dx / (n* 2*pi))^2 it is the FFT and dk term in hHH (SEE NOTES BELOW)
-    PS_nl = (PS_ql + ps_nl_only);
+    PS_nl = abs(PS_ql + ps_nl_only);
 
-
-    figure('Position', [100, 100, 1200, 300]);
-    subplot(1,3,1);
-    contour(k_range, k_azimuth, abs(ps_nl_only),40);
-    % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Nonlinear Spectral Terms", "nonlinearity order = "+nonlinearity); colorbar;
-    subplot(1,3,2);
-    contour(k_range, k_azimuth, abs(PS_ql),40);
-    % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear Spectrum, P^S_{ql}", "nonlinearity order = "+nonlinearity); colorbar;
-    subplot(1,3,3);
-    contour(k_range, k_azimuth, abs(PS_nl),40);
-    % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_{k}", "nonlinearity order = "+nonlinearity); colorbar;
-
+    if plotsON
+        figure('Position', [100, 100, 1200, 300]);
+        subplot(1,3,1);
+        contour(k_range, k_azimuth, abs(ps_nl_only),40);
+        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Nonlinear Spectral Terms", "nonlinearity order = "+nonlinearity); colorbar;
+        subplot(1,3,2);
+        contour(k_range, k_azimuth, abs(PS_ql),40);
+        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear Spectrum, P^S_{ql}", "nonlinearity order = "+nonlinearity); colorbar;
+        subplot(1,3,3);
+        contour(k_range, k_azimuth, abs(PS_nl),40);
+        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_{k}", "nonlinearity order = "+nonlinearity); colorbar;
+    end
 end
 
 
@@ -338,7 +336,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
 
     sar_azimuth_resolution = SatelliteObject.AzimuthResolution;
 
-    disp("Successfully read in SAR parameters.");
+    % disp("Successfully read in SAR parameters.");
     %% Frozen Surface Contribution pg.3-4 
     % [pg43, Hasselmann, 1990] - "...in all cases as mu = 0.5 1/sec and gamma = 0.
     % This is consistent with field and laboratory measurements (cf. Keller and Wright, 1975)"
@@ -346,7 +344,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
     
     % k in radar look direction variable - convert k in the range component to
     % H&H definition
-    [sar_look, first_guess_kx_range] = klUsingSARlook(sar_look_direction,first_guess_kx_range);
+    [first_guess_kx_range] = klUsingSARlook(sar_look_direction,first_guess_kx_range);
 
     % Tilt MTF: The change in incidence angle is due to the change in the slope of the wave face.
     Tt_k = tiltMTF(sar_polarisation, sar_incidence_angle_degrees,first_guess_kx_range); % [Eq.5, H&H 1991]
@@ -383,7 +381,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
         xlim([-0.08 0.08]); ylim([-0.08 0.08]); colorbar;
     end
     
-    disp("Successfully completed Frozen Surface Contribution calculations.");
+    % disp("Successfully completed Frozen Surface Contribution calculations.");
     %% Motion Effects:
     % "We consider now the modification of the frozen image induced by the
     % surface motion. This is normally described by two effects:
@@ -440,7 +438,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
         colorbar; grid on;
     end
     
-    disp("Successfully completed Motion Effects calculations.");
+    % disp("Successfully completed Motion Effects calculations.");
     %% General Nonlinear mapping
     % The reasoning for doing this is given in H&H on pg 5 in the paragraph before section 3.
     % "To determine the dependence of the SAR image Fourier components IS_k on the wave Fourier components in the general nonlinear case, we first apply a Fourier transform to the basic mapping relation [Eq.20, H&H 1991]... this yields the SAR image variance soectrum PS_k [Eq.30, H&H 1991]"
@@ -502,7 +500,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
 
     % Nonlinear Mapping Transform
     % Calculate the Nonlinear Mapping Transform SAR Spectrum using the spectral series expansion terms
-    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r,xi_sqr, first_guess_kx_range);
+    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r,xi_sqr, first_guess_kx_range);
     
     dk = (sar_azimuth_resolution / (sar_transect_size*2*pi))^2; % [Eq.45, H&H 1991]
 
@@ -523,7 +521,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
         xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_k"); colorbar;
     end
     
-    disp("Successfully generated SAR Spectrum.");
+    % disp("Successfully generated SAR Spectrum.");
 end
 % -------------------------------------------------------------------
 
