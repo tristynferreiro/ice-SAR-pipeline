@@ -20,21 +20,21 @@ classdef CosmoSkyMED
     properties
         Filepath
         ProductType
+        AcquisitionMode
+        %OrbitalPass              %Ascending/Descending 
 
+        %%%%% Properties for inversion
         AcquisitionStartDatetime
         AcquisitionStopDatetime
         Polarisation
         LookDirection
         RangeResolution
         AzimuthResolution
-        SlantRangeToFirstPixel
-        SlantRange
-        IncidenceAngle
         SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
         SceneOrientationAngle
-        %Ascending/Descending 
-
-        AcquisitionMode
+        
+        
+        %%%%% Properties for calibration
         RefSlantRange
         RefSlantRangeExponent
         RefIncidenceAngle
@@ -121,102 +121,34 @@ classdef CosmoSkyMED
             obj.RangeResolution = metadata_attributes(matching_row_number(12)).Value;
             obj.AzimuthResolution = metadata_attributes(matching_row_number(13)).Value;
             
-            % Slant Rnage
-            obj.SlantRangeToFirstPixel = metadata_attributes(matching_row_number(14)).Value;
+            % Slant Range to First Pixel
+            % obj.SlantRangeToFirstPixel = metadata_attributes(matching_row_number(14)).Value;
 
             % Acquisition times
             [obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime] = obj.getAcquisitiontime;
 
-            % Scene Orientation Angle 
+            % Scene Orientation Angle / Azimuthal Angle to True north
             obj.SceneOrientationAngle = obj.getSceneOrientationAngle;
    
         end
-
-        function [acquisition_start_datetime, acquisition_stop_datetime] = getAcquisitiontime(obj)
-            % Extract the acquisition times as a datetime object
-            
-            % Names of the required attributes
-            required_attributes = ["start_date","stop_date"];
-
-            if obj.ProductType=="CSG"
-                % List of required attributes
-                % required_attributes = "Abstracted_Metadata:"+required_attributes;
-                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
-            elseif obj.ProductType=="CSK"
-                metadata_attributes = ncinfo(obj.Filepath).Attributes; 
-            end
-            
-            % Find where in the structure the required attributes are 
-            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
-
-            % Return the times
-            acquisition_information = metadata_attributes(matching_row_number(1)).Value;
-            acquisition_start_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
-            acquisition_information = metadata_attributes(matching_row_number(2)).Value;
-            acquisition_stop_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
-            
-        end
-
-        function obj = setSlantRange(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
-            c = physconst('LightSpeed');
-            RTT = c /2;
-            slant_range_time = ncread(obj.Filepath,"slant_range_time") .* 10e-9;
-            slant_range_time = slant_range_time(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
-            % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
-
-            obj.SlantRange = mean(slant_range_time(:)) .* RTT;
-        end
-
-        function obj = setIncidenceAngle(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
-            incident_angle_grid = ncread(obj.Filepath,"incident_angle");
-
-            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
-            % sar_center_incidence_angle_degrees =
-            % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
-            % % get center pixel
-            % sar_center_incidence_angle_degrees =
-            % sar_center_incidence_angle_degrees *
-            % ones(sar_sub_transect_size); % greate matrix
-
-            obj.IncidenceAngle = mean(incidence_angle_degrees_transect(:));
-        end
-
-        function [scene_orientation_angle] = getSceneOrientationAngle(obj)
-            % Extract the acquisition times as a datetime object
-            
-            % Names of the required attributes
-            required_attributes = "Scene_Orientation";
-
-            if obj.ProductType=="CSG"
-                % List of required attributes
-                % required_attributes = "Abstracted_Metadata:"+required_attributes;
-                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
-            elseif obj.ProductType=="CSK"
-                metadata_attributes = ncinfo(obj.Filepath,'Metadata_Group').Groups(2).Groups(1).Attributes; 
-            end
-            
-            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
-            scene_orientation_angle = metadata_attributes(matching_row_number(1)).Value; % [degrees]
-            % IN Sentinel this is called the "centre_heading" and "centre_heading2"  
-        end
         
-        function [sar_data] = getSlantRangeToTransect(obj)
+        %------------------------------------------------------------------
+        
+
+        
+        %------------------------------------------------------------------
+        function [sar_data] = getSARImageAmplitude(obj)
             %GETImage Get the sar data from file
             sar_data = ncread(obj.Filepath,'Amplitude'); 
         end
 
-        function [sar_data] = getSARImage(obj)
-            %GETImage Get the sar data from file
-            sar_data = ncread(obj.Filepath,'Amplitude'); 
-        end
-
-        function [radiometric_calibrated_image] = radiometricCalibration(obj,sar_image)
+        function [radiometric_calibrated_image] = getRadiometricallyCalibratedImage(obj)
             %RADIOMETRICCALIBRATION Preprocessing procedure 
             %   Uses the single pixel backscattering coefficient, σ^0 
             %   In accordance with the e-geos documentation
             
             % Step 1: Evaluate the power image (intensity)
-            power_image = abs(sar_image).^2;
+            power_image = abs(obj.getSARImageAmplitude).^2;
         
             % Step 2:
             scaling_factor = 0;
@@ -245,6 +177,87 @@ classdef CosmoSkyMED
                
         end
 
+        function [acquisition_start_datetime, acquisition_stop_datetime] = getAcquisitiontime(obj)
+            % Extract the acquisition times as a datetime object
+            
+            % Names of the required attributes
+            required_attributes = ["start_date","stop_date"];
+
+            if obj.ProductType=="CSG"
+                % List of required attributes
+                % required_attributes = "Abstracted_Metadata:"+required_attributes;
+                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
+            elseif obj.ProductType=="CSK"
+                metadata_attributes = ncinfo(obj.Filepath).Attributes; 
+            end
+            
+            % Find where in the structure the required attributes are 
+            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
+
+            % Return the times
+            acquisition_information = metadata_attributes(matching_row_number(1)).Value;
+            acquisition_start_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
+            acquisition_information = metadata_attributes(matching_row_number(2)).Value;
+            acquisition_stop_datetime = datetime(acquisition_information, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
+            
+        end
+
+        function [scene_orientation_angle] = getSceneOrientationAngle(obj)
+            % Extract the acquisition times as a datetime object
+            
+            % Names of the required attributes
+            required_attributes = "Scene_Orientation";
+
+            if obj.ProductType=="CSG"
+                % List of required attributes
+                % required_attributes = "Abstracted_Metadata:"+required_attributes;
+                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
+            elseif obj.ProductType=="CSK"
+                metadata_attributes = ncinfo(obj.Filepath,'Metadata_Group').Groups(2).Groups(1).Attributes; 
+            end
+            
+            [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
+            scene_orientation_angle = metadata_attributes(matching_row_number(1)).Value; % [degrees]
+            % IN Sentinel this is called the "centre_heading" and "centre_heading2"  
+        end
+        
+        function [lat_grid] = getLatitudeGrid(obj)
+            %GETLATITUDEGRID 
+            %   This returns the latitude of the full image
+            lat_grid = ncread(obj.Filepath,'lat')';
+        end
+       
+        function [lon_grid] = getLongitudeGrid(obj)
+            %GETLONGITUDEGRID 
+            %   This returns the longitude of the full image
+            lon_grid = ncread(obj.Filepath,'lon')';
+        end
+        
+        function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            c = physconst('LightSpeed');
+            RTT = c /2;
+            slant_range_time = ncread(obj.Filepath,"slant_range_time") .* 10e-9;
+            slant_range_time = slant_range_time(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
+
+            slant_range_to_transect_center = mean(slant_range_time(:)) .* RTT;
+        end
+
+        function [incidence_angle_at_transect] = getIncidenceAngle(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            incident_angle_grid = ncread(obj.Filepath,"incident_angle");
+
+            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_end_index:sar_transect_lat_start_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
+            % % get center pixel
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees *
+            % ones(sar_sub_transect_size); % greate matrix
+
+            incidence_angle_at_transect = mean(incidence_angle_degrees_transect(:));
+        end
+
+        %------------------------------------------------------------------
         function dB_sar_image = convertToDbs(linear_sar_image)
             %CONVERTTODBS convert the linear image to decibels
             dB_sar_image = 10*log10(linear_sar_image);
