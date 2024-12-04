@@ -4,15 +4,24 @@ classdef Sentinel1A
 
     properties
         Filepath
+        ProductType
+        AcquisitionMode
+        OrbitalPass             %Ascending/Descending 
+
+        %%%%% Properties for inversion
         AcquisitionStartDatetime
         AcquisitionStopDatetime
-        CaptureTime
         Polarisation
         LookDirection
-        SlantRange
-        SatelliteVelocity
-        % RangeResolution
-        % AzimuthResolution
+        AzimuthResolution
+        RangeResolution
+        % % SlantRangeToFirstPixel
+        % SlantRangeToTransect
+        % IncidenceAngleTransect
+        SatelliteVelocity           % [m/s]
+        SceneOrientationAngle       % [degrees] Azimuthal Angle / Platform Heading / Scene Orientation
+        
+        
 
     end
 
@@ -30,13 +39,18 @@ classdef Sentinel1A
             
             % Set the object properties using the metadata
             % List of required attributes
-            required_attributes = ["PROC_TIME", ...                     % Capture Date
-                "first_line_time", "last_line_time", ...                % Capture Time
-                "mds1_tx_rx_polar","mds2_tx_rx_polar",...               % Polarisation
-                "antenna_pointing",...                                  % Look
-                "slant_range_to_first_pixel", ...                       % Slant Range
-                "Orbit_State_Vectors:orbit_vector1:time",...            % Sat Velocity start
-                "SRGR_Coefficients:srgr_coef_list_1:zero_doppler_time"  % Sat Velocity end
+            required_attributes = ["PROC_TIME", ...                         % Capture Date
+                "first_line_time", "last_line_time", ...                    % Capture Time
+                "mds1_tx_rx_polar","mds2_tx_rx_polar",...                   % Polarisation
+                "antenna_pointing",...                                      % Look
+                "slant_range_to_first_pixel", ...                           % Slant Range
+                "Orbit_State_Vectors:orbit_vector1:time",...                % Sat Velocity start
+                "Orbit_State_Vectors:orbit_vector17:z_vel",...              % Sat Velocity end
+                "PRODUCT_TYPE",...
+                "ACQUISITION_MODE",...
+                "PASS",...
+                "range_spacing","azimuth_spacing",...
+                "centre_heading","centre_heading2"                          % Azimuthal Angle / Platform Heading / Scene Orientation
                 ];  
 
             % Update attribute list values to include prefix found in the
@@ -57,7 +71,8 @@ classdef Sentinel1A
             obj.AcquisitionStopDatetime = datetime(metadata_attributes(matching_row_number(3)).Value, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss.SSSSSS');
             
             % Capture Time
-            obj.CaptureTime = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
+            % obj.CaptureTime = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
+            
             % Polarisation
             obj.Polarisation = [...
                 metadata_attributes(matching_row_number(4)).Value,...
@@ -66,13 +81,40 @@ classdef Sentinel1A
             % Look
             obj.LookDirection = metadata_attributes(matching_row_number(6)).Value;
 
-            % Radar Slant Range
-            obj.SlantRange = metadata_attributes(matching_row_number(7)).Value;
+            % Radar Slant Range to first pixel
+            % obj.SlantRange = metadata_attributes(matching_row_number(7)).Value;
             
             % Satellite Velocity in m/s
             obj = obj.getSatelliteVelocity(metadata_attributes,matching_row_number);
+
+            % Product Type
+            obj.ProductType  = metadata_attributes(matching_row_number(10)).Value;
+            
+            % Acquisition Mode
+            obj.AcquisitionMode  = metadata_attributes(matching_row_number(11)).Value;
+
+            % Pass direction 
+            obj.OrbitalPass  = metadata_attributes(matching_row_number(12)).Value;
+            
+            % Range Resolution
+            obj.RangeResolution  = metadata_attributes(matching_row_number(13)).Value;
+
+            % Azimuth Resolution
+            obj.AzimuthResolution  = metadata_attributes(matching_row_number(14)).Value;
+
+            % Scene Orientation Angle / Azimuthal Angle / Platform Heading 
+            % obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(15)).Value;
+            obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(16)).Value;
+
+
         end
 
+        %------------------------------------------------------------------
+        
+        
+        
+        
+        %------------------------------------------------------------------
         function obj = getSatelliteVelocity(obj,metadata_attributes,matching_row_number)
             %GETSATELLITEVELOCITY Summary of this method goes here
             %   Detailed explanation goes here
@@ -82,7 +124,7 @@ classdef Sentinel1A
             % num_orbit_state_vectors = (matching_row_number(9) - matching_row_number(8))/7;
 
             % Compute offsets for all indices
-            orbit_vector_indices = (matching_row_number(8):7:matching_row_number(9)-6);  
+            orbit_vector_indices = (matching_row_number(8):7:matching_row_number(9)-5);  
             
             % Compute indices for time, x_vel, y_vel, and z_vel
             time_indices = orbit_vector_indices;
@@ -94,7 +136,8 @@ classdef Sentinel1A
             meta_orb_time = datetime([metadata_attributes(time_indices).Value], 'InputFormat', format);
 
             % Calculate time differences
-            time_diff = abs(meta_orb_time - obj.CaptureTime);
+            mean_capture_time = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
+            time_diff = abs(meta_orb_time - mean_capture_time);
             % Find the index of the closest datetime
             [~, time_index] = min(time_diff);
 
@@ -106,9 +149,11 @@ classdef Sentinel1A
  
         end
  
-        function sar_data = getSARImage(obj,polarisation)
-            %GETSARImage Summary of this method goes here
-            %   Detailed explanation goes here
+        function sar_data = getCalibratedSARImage(obj,polarisation)
+            %GETCALIBRATEDSARImage returns calibrated Sentinel 1A SAR image
+            %   Imports the SAR Image that has been calibrated using
+            %   SNAP IDE.
+            
             [found, ~] = ismember(obj.Polarisation,polarisation);
             if(~found)
                 error('Specified polarisation value "%s" is not valid OR does not exist in the object.',polarisation);
@@ -117,30 +162,31 @@ classdef Sentinel1A
             end
         end
         
-        % function thermal_calibrated_image = thermalNoiseCalibration(sar_image)
-        %     %THERMALNOISECALIBRATION Preprocessing procedure
-        %     %   Used to remove thermal noise (speckle) from image.
-        % 
-        % end
-
+       
         function incidence_angle_grid_full = getIncidenceAngleGrid(obj)
-            %GETINCIDENCEANGLEGRID Summary of this method goes here
+            %GETINCIDENCEANGLEGRID 
             %   This returns the incidence angle of the full image
             incidence_angle_grid_full = ncread(obj.Filepath,'Incidence_Angle')';
         end
 
         function lat_grid = getLatitudeGrid(obj)
-            %GETLATITUDEGRID Summary of this method goes here
-            %   This returns the incidence angle of the full image
-            lat_grid = ncread(obj.Filepath,'Lat')';
+            %GETLATITUDEGRID 
+            %   This returns the latitude of the full image
+            lat_grid = ncread(obj.Filepath,'lat')';
         end
        
         function lon_grid = getLongitudeGrid(obj)
-            %GETLONGITUDEGRID Summary of this method goes here
-            %   This returns the incidence angle of the full image
-            lon_grid = ncread(obj.Filepath,'Lon')';
+            %GETLONGITUDEGRID 
+            %   This returns the longitude of the full image
+            lon_grid = ncread(obj.Filepath,'lon')';
         end
-
+        
+        %------------------------------------------------------------------
+        % function thermal_calibrated_image = thermalNoiseCalibration(sar_image)
+        %     %THERMALNOISECALIBRATION Preprocessing procedure
+        %     %   Used to remove thermal noise (speckle) from image.
+        % 
+        % end
 
     end
 end
