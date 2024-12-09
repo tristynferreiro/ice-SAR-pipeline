@@ -314,7 +314,7 @@ end
 %% Generate the first guess SAR Spectrum
 % Use an input wave number spectrum to generate the equivalent SAR spectrum
 
-function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
+function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, transect_number, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
     % sar_transect_size typically = 128
 
     %% SAR metadata attributes
@@ -324,10 +324,10 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
     sar_platform_velocity = SatelliteObject.SatelliteVelocity; %m/s from Giacomo's output file.
     
     % Get the incidence angle at the center of the SAR transect.
-    sar_incidence_angle_degrees = SatelliteObject.IncidenceAngle;
+    sar_incidence_angle_degrees = SatelliteObject.TransectIncidenceAngles(transect_number,2).Value;
     
     % Get the slant range at the scenter of the SAR transect
-    sar_slant_range = SatelliteObject.SlantRange;
+    sar_slant_range = SatelliteObject.TransectSlantRanges(transect_number,2).Value;
     
     % 
     sar_beta = defineBeta(sar_slant_range, sar_platform_velocity); %[Eq.15, H&H 1991]

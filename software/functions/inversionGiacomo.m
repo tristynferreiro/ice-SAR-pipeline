@@ -1,4 +1,4 @@
-function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_giacomo_J, J] = inversionGiacomo(inversion_iterations,nonlinearity_order, first_guess_wave_number_spectrum, P_obs, TS_k, first_guess_ky_azimuth, first_guess_kx_range,xi_sqr, first_guess_omega,cosmo, first_guess_k, sar_sub_transect_size,HandHLibrary)
+function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_giacomo_J, J] = inversionGiacomo(inversion_iterations,nonlinearity_order, first_guess_wave_number_spectrum, P_obs, TS_k, first_guess_ky_azimuth, first_guess_kx_range,xi_sqr, first_guess_omega,cosmo, first_guess_k, transect_number, sar_sub_transect_size,HandHLibrary)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -81,7 +81,7 @@ function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_
             S_guess(S_guess < 0) = 0;
         end
 
-        P_guess = HandHLibrary.generateSARSpectrumFromWaveNumberSpectrum(cosmo, 0, nonlinearity_order, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,S_guess);
+        P_guess = HandHLibrary.generateSARSpectrumFromWaveNumberSpectrum(cosmo, 0, transect_number, nonlinearity_order, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,S_guess);
         % P_guess = P_guess .* butterworth; % CHECK IF WE NEED THIS
 
         % J(iterazione) = int_tabulated_2d(kx, ky, anello * P_obs .* (P_obs - P_tmp).^2) + ...
