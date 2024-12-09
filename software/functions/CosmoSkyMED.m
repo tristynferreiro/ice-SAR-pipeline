@@ -21,7 +21,7 @@ classdef CosmoSkyMED
         Filepath
         ProductType
         AcquisitionMode
-        %OrbitalPass              %Ascending/Descending 
+        OrbitalPass              %Ascending/Descending 
 
         %%%%% Properties for inversion
         AcquisitionStartDatetime
@@ -30,8 +30,10 @@ classdef CosmoSkyMED
         LookDirection
         RangeResolution
         AzimuthResolution
-        SatelliteVelocity = 7541.89; %m/s from Giacomo's output file.
+        SatelliteVelocity %= 7541.89; %m/s from Giacomo's output file.
         SceneOrientationAngle
+        TransectSlantRanges
+        TransectIncidenceAngles
         
         
         %%%%% Properties for calibration
@@ -64,8 +66,8 @@ classdef CosmoSkyMED
                       "abs_calibration_flag",...
                       "mds1_tx_rx_polar",...
                       "antenna_pointing",...
-                      "range_spacing","azimuth_spacing",...
-                      "slant_range_to_first_pixel"...
+                      "range_spacing","azimuth_spacing",... 
+                      "PASS"...                             %Ascending/Descending 
                 ];  
 
             if product_type=="CSG"
@@ -120,16 +122,22 @@ classdef CosmoSkyMED
             % Resolution
             obj.RangeResolution = metadata_attributes(matching_row_number(12)).Value;
             obj.AzimuthResolution = metadata_attributes(matching_row_number(13)).Value;
-            
-            % Slant Range to First Pixel
-            % obj.SlantRangeToFirstPixel = metadata_attributes(matching_row_number(14)).Value;
+
+            % Pass direction 
+            obj.OrbitalPass = metadata_attributes(matching_row_number(14)).Value;
 
             % Acquisition times
             [obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime] = obj.getAcquisitiontime;
 
             % Scene Orientation Angle / Azimuthal Angle to True north
             obj.SceneOrientationAngle = obj.getSceneOrientationAngle;
-   
+
+            % Satellite Velocity in m/s
+            obj = obj.getSatelliteVelocity;
+
+            obj.TransectSlantRanges = table([],[], 'VariableNames', {'Field', 'Value'});
+            obj.TransectIncidenceAngles = table([],[], 'VariableNames', {'Field', 'Value'});
+            
         end
         
         %------------------------------------------------------------------
@@ -137,6 +145,39 @@ classdef CosmoSkyMED
 
         
         %------------------------------------------------------------------
+        function obj = getSatelliteVelocity(obj)
+            %GETSATELLITEVELOCITY Summary of this method goes here
+            %   Detailed explanation goes here
+            
+            % Names of the required attributes
+            required_attributes = ["x_vel", "y_vel", "z_vel"];
+
+            if obj.ProductType=="CSG"
+                % List of required attributes
+                % required_attributes = "Abstracted_Metadata:"+required_attributes;
+                % metadata_attributes = ncinfo(filepath,'metadata').Attributes;
+            elseif obj.ProductType=="CSK"
+                % Get the orbital state vector metadata
+                metadata_groups = ncinfo(obj.Filepath,'Metadata_Group').Groups(1).Groups(1).Groups; 
+                % ncinfo(filepath,'Metadata_Group').Groups(1).Groups(1).Groups.Attributes
+            end
+            
+            for state_vector_index = 1:size(metadata_groups,2)
+                metadata_attributes = metadata_groups(state_vector_index).Attributes;
+                [~,matching_row_numbers] = ismember(required_attributes, {metadata_attributes.Name});
+
+                % These locations are dependent on the order in the required_attributes list. 
+                meta_orb_x(state_vector_index) = [metadata_attributes(matching_row_numbers(1)).Value];
+                meta_orb_y(state_vector_index) = [metadata_attributes(matching_row_numbers(2)).Value];
+                meta_orb_z(state_vector_index) = [metadata_attributes(matching_row_numbers(3)).Value];
+
+            end
+
+            % Calculate the average satellite velocity
+            obj.SatelliteVelocity = mean(sqrt(meta_orb_x.^2 + meta_orb_y.^2 + meta_orb_z.^2));
+ 
+        end
+
         function [sar_data] = getSARImageAmplitude(obj)
             %GETImage Get the sar data from file
             sar_data = ncread(obj.Filepath,'Amplitude'); 
@@ -218,7 +259,7 @@ classdef CosmoSkyMED
             
             [~,matching_row_number] = ismember(required_attributes, {metadata_attributes.Name});
             scene_orientation_angle = metadata_attributes(matching_row_number(1)).Value; % [degrees]
-            % IN Sentinel this is called the "centre_heading" and "centre_heading2"  
+             
         end
         
         function [lat_grid] = getLatitudeGrid(obj)

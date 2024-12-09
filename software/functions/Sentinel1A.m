@@ -82,11 +82,8 @@ classdef Sentinel1A
             obj.LookDirection = metadata_attributes(matching_row_number(6)).Value;
 
             % Radar Slant Range to first pixel
-            % obj.SlantRange = metadata_attributes(matching_row_number(7)).Value;
+            % obj.SlantRangeToFirstPixel = metadata_attributes(matching_row_number(7)).Value;
             
-            % Satellite Velocity in m/s
-            obj = obj.getSatelliteVelocity(metadata_attributes,matching_row_number);
-
             % Product Type
             obj.ProductType  = metadata_attributes(matching_row_number(10)).Value;
             
@@ -106,23 +103,7 @@ classdef Sentinel1A
             % obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(15)).Value;
             obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(16)).Value;
 
-
-        end
-
-        %------------------------------------------------------------------
-        
-        
-        
-        
-        %------------------------------------------------------------------
-        function obj = getSatelliteVelocity(obj,metadata_attributes,matching_row_number)
-            %GETSATELLITEVELOCITY Summary of this method goes here
-            %   Detailed explanation goes here
-            
-            % Calculate how many orbit vectors there are: each has 7
-            % associated fields
-            % num_orbit_state_vectors = (matching_row_number(9) - matching_row_number(8))/7;
-
+            % Satellite Velocity in m/s
             % Compute offsets for all indices
             orbit_vector_indices = (matching_row_number(8):7:matching_row_number(9)-5);  
             
@@ -132,22 +113,47 @@ classdef Sentinel1A
             y_vel_indices = 5 + orbit_vector_indices;
             z_vel_indices = 6 + orbit_vector_indices;
     
-            format = 'dd-MMM-yyyy HH:mm:ss.SSSSSS';
-            meta_orb_time = datetime([metadata_attributes(time_indices).Value], 'InputFormat', format);
+            
+            meta_orb_x = [metadata_attributes(x_vel_indices).Value];
+            meta_orb_y = [metadata_attributes(y_vel_indices).Value];
+            meta_orb_z = [metadata_attributes(z_vel_indices).Value];
 
-            % Calculate time differences
-            mean_capture_time = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
-            time_diff = abs(meta_orb_time - mean_capture_time);
-            % Find the index of the closest datetime
-            [~, time_index] = min(time_diff);
+            obj.SatelliteVelocity = mean(sqrt(meta_orb_x.^2 + meta_orb_y.^2 + meta_orb_z.^2));
 
-            meta_orb_x = [metadata_attributes(x_vel_indices(time_index)).Value];
-            meta_orb_y = [metadata_attributes(y_vel_indices(time_index)).Value];
-            meta_orb_z = [metadata_attributes(z_vel_indices(time_index)).Value];
+            % ****************************************************
+            % NOTE: accuracy can be improved by only averaging the state
+            % vector velocities for the time periods that align with the
+            % transects used.
 
-            obj.SatelliteVelocity = sqrt(meta_orb_x.^2 + meta_orb_y.^2 + meta_orb_z.^2);
- 
+            % format = 'dd-MMM-yyyy HH:mm:ss.SSSSSS';
+            % meta_orb_time = datetime([metadata_attributes(time_indices).Value], 'InputFormat', format);
+            % 
+            % % Calculate time differences
+            % mean_capture_time = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
+            % time_diff = abs(meta_orb_time - mean_capture_time);
+            % % Find the index of the closest datetime
+            % [~, time_index] = min(time_diff);
+
+            % meta_orb_x = [metadata_attributes(x_vel_indices(time_index)).Value];
+            % meta_orb_y = [metadata_attributes(y_vel_indices(time_index)).Value];
+            % meta_orb_z =
+            % [metadata_attributes(z_vel_indices(time_index)).Value];
+
+
+
         end
+
+        %------------------------------------------------------------------
+        
+        
+        
+        
+        %------------------------------------------------------------------
+        % function obj = getSatelliteVelocity(obj)
+        %     %GETSATELLITEVELOCITY Summary of this method goes here
+        %     %   Detailed explanation goes here
+        % 
+        % end
  
         function sar_data = getCalibratedSARImage(obj,polarisation)
             %GETCALIBRATEDSARImage returns calibrated Sentinel 1A SAR image
