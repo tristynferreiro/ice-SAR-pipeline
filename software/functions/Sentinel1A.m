@@ -20,6 +20,8 @@ classdef Sentinel1A
         % IncidenceAngleTransect
         SatelliteVelocity           % [m/s]
         SceneOrientationAngle       % [degrees] Azimuthal Angle / Platform Heading / Scene Orientation
+        TransectSlantRanges
+        TransectIncidenceAngles
         
         
 
@@ -74,8 +76,10 @@ classdef Sentinel1A
             % obj.CaptureTime = mean([ obj.AcquisitionStartDatetime, obj.AcquisitionStopDatetime]);
             
             % Polarisation
+            % obj.Polarisation = [...
+            %     metadata_attributes(matching_row_number(4)).Value,...
+            %     metadata_attributes(matching_row_number(5)).Value];
             obj.Polarisation = [...
-                metadata_attributes(matching_row_number(4)).Value,...
                 metadata_attributes(matching_row_number(5)).Value];
 
             % Look
@@ -139,7 +143,8 @@ classdef Sentinel1A
             % meta_orb_z =
             % [metadata_attributes(z_vel_indices(time_index)).Value];
 
-
+            obj.TransectSlantRanges = table([],[], 'VariableNames', {'Field', 'Value'});
+            obj.TransectIncidenceAngles = table([],[], 'VariableNames', {'Field', 'Value'});
 
         end
 
@@ -186,6 +191,30 @@ classdef Sentinel1A
             %   This returns the longitude of the full image
             lon_grid = ncread(obj.Filepath,'lon')';
         end
+
+        function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            c = physconst('LightSpeed');
+            RTT = c /2;
+            slant_range_time = ncread(obj.Filepath,"Slant_Range_Time_grid") .* 10e-9;
+            slant_range_time = slant_range_time(sar_transect_lat_start_index:sar_transect_lat_end_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
+
+            slant_range_to_transect_center = mean(slant_range_time(:)) .* RTT;
+        end
+
+        function [incidence_angle_at_transect] = getIncidenceAngle(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+            incident_angle_grid = ncread(obj.Filepath,"Incidence_Angle");
+
+            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_start_index:sar_transect_lat_end_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
+            % % get center pixel
+            % sar_center_incidence_angle_degrees =
+            % sar_center_incidence_angle_degrees *
+            % ones(sar_sub_transect_size); % greate matrix
+
+            incidence_angle_at_transect = mean(incidence_angle_degrees_transect(:));
+        end
         
         %------------------------------------------------------------------
         % function thermal_calibrated_image = thermalNoiseCalibration(sar_image)
@@ -193,6 +222,14 @@ classdef Sentinel1A
         %     %   Used to remove thermal noise (speckle) from image.
         % 
         % end
+
+        function azimuth_to_north_angle = azimuthToNorthAngleConversion(obj)
+            % this is the angle between the azimuth plane of the SAR image
+            % and the true north direction.
+            if obj.LookDirection == "right"
+                azimuth_to_north_angle = 180 - obj.SceneOrientationAngle ; % degrees
+            end
+        end
 
     end
 end

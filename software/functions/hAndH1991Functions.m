@@ -229,7 +229,7 @@ function PS_2n_minus_2 = spectralExpansion2nMinus2Term(n, fv_r, fRv_r, fRv_neg_r
     
 end
 
-function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, k_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, k_range)
+function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, k_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, k_range, sar_dazimuth, sar_sub_transect_size)
     % [Eq.50, H&H 1991]
         % PS_ql = Quasilinear Mapping Transform Spectrum, this is PS_1 (the
         % first term of the nonlinearity mapping transform)\
@@ -289,7 +289,7 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
     end
     
     % Non-linear spectrum calculation [Eq.50, H&H 1991]
-    ps_nl_only = ps_k .* exp(-xi_sqr * k_azimuth.^2); % This factor is for converting from 2pi to spatial domain (dx / (n* 2*pi))^2 it is the FFT and dk term in hHH (SEE NOTES BELOW)
+    ps_nl_only = ps_k .* exp(-xi_sqr * k_azimuth.^2) .* (sar_dazimuth / (sar_sub_transect_size*2*pi))^2; % [Eq.45, H&H 1991]; % This factor is for converting from 2pi to spatial domain (dx / (n* 2*pi))^2 it is the FFT and dk term in hHH (SEE NOTES BELOW)
     PS_nl = abs(PS_ql + ps_nl_only);
 
     if plotsON
@@ -500,7 +500,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
 
     % Nonlinear Mapping Transform
     % Calculate the Nonlinear Mapping Transform SAR Spectrum using the spectral series expansion terms
-    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r,xi_sqr, first_guess_kx_range);
+    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r,xi_sqr, first_guess_kx_range,sar_azimuth_resolution, sar_transect_size);
     
     dk = (sar_azimuth_resolution / (sar_transect_size*2*pi))^2; % [Eq.45, H&H 1991]
 

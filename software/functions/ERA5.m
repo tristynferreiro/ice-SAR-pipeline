@@ -124,6 +124,9 @@ classdef ERA5
             % Slice the data
             era5_d2fd(:,:) = era5_d2fd_all_5dims(lon_match_index,lat_match_index,:,:,time_match_index);
             
+            if(all(era5_d2fd == 0))
+                era5_d2fd(:,:) = era5_d2fd_all_5dims(lat_match_index,lon_match_index,:,:,time_match_index);
+            end
             % Transpose the data so that it is [dir frq] not [frq dir]
             era5_d2fd = era5_d2fd';
 

@@ -10,9 +10,9 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
     mu = 0.1 * max(P_obs(:))^2; % [Eq.76 HH1991]
     B = 0.01 * max(F_first_guess(:))^2; % Below [Eq.76 HH1991]
     
-    Jmax_eq63 = 1e10;
-    Jmax_eq62  = 1e10;
-    Jmax_eq69 = 1e10;
+    Jmax_eq63 = 1e20;
+    Jmax_eq62  = 1e20;
+    Jmax_eq69 = 1e20;
     for n = 1:inversion_iterations
         if(n == 1) % Below Eq 64
             F_n_k = F_first_guess;
