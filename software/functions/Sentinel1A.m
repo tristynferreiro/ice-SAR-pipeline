@@ -65,7 +65,17 @@ classdef Sentinel1A
 
             % ERROR check: missing attributes in structure
             if any(matching_row_number == 0)
-                error('Some required attributes are not found in metadata_attributes.');
+                % Update attribute list values to include prefix found in the
+                % metadat_attributes structure
+                prefix = 'Metadata_Group:Abstracted_Metadata:'; 
+                required_attributes_prefix = prefix + required_attributes;
+
+                % Find where in the structure the required attributes are 
+                [~,matching_row_number] = ismember(required_attributes_prefix, {metadata_attributes.Name});
+
+                if any(matching_row_number == 0)
+                    error('Some required attributes are not found in metadata_attributes.');
+                end
             end
 
             % Capture Date
@@ -173,12 +183,7 @@ classdef Sentinel1A
             end
         end
         
-       
-        function incidence_angle_grid_full = getIncidenceAngleGrid(obj)
-            %GETINCIDENCEANGLEGRID 
-            %   This returns the incidence angle of the full image
-            incidence_angle_grid_full = ncread(obj.Filepath,'Incidence_Angle')';
-        end
+ 
 
         function lat_grid = getLatitudeGrid(obj)
             %GETLATITUDEGRID 
@@ -192,20 +197,26 @@ classdef Sentinel1A
             lon_grid = ncread(obj.Filepath,'lon')';
         end
 
-        function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
+        function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_indices,sar_transect_lon_indices)
             c = physconst('LightSpeed');
             RTT = c /2;
-            slant_range_time = ncread(obj.Filepath,"Slant_Range_Time_grid") .* 10e-9;
-            slant_range_time = slant_range_time(sar_transect_lat_start_index:sar_transect_lat_end_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            slant_range_time = ncread(obj.Filepath,"slant_range_t") .* 10e-9;
+            slant_range_time = slant_range_time(sar_transect_lat_indices,sar_transect_lon_indices); % center of the transect
             % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
 
             slant_range_to_transect_center = mean(slant_range_time(:)) .* RTT;
         end
 
-        function [incidence_angle_at_transect] = getIncidenceAngle(obj,sar_transect_lat_end_index,sar_transect_lat_start_index,sar_transect_lon_start_index,sar_transect_lon_end_index)
-            incident_angle_grid = ncread(obj.Filepath,"Incidence_Angle");
+        function [incidence_angle_at_transect] = getIncidenceAngle(obj,sar_transect_lat_indices,sar_transect_lon_indices)
+            %
+            %   sar_transect_lat_indices = all the latitude indices (should
+            %   match what is used to slice the sar data)
+            %   sar_transect_lon_indices = all the longitude indices (should
+            %   match what is used to slice the sar data)
+            
+            incident_angle_grid = ncread(obj.Filepath,"i_angle");
 
-            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_start_index:sar_transect_lat_end_index,sar_transect_lon_start_index:sar_transect_lon_end_index); % center of the transect
+            incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_indices,sar_transect_lon_indices); % center of the transect
             % sar_center_incidence_angle_degrees =
             % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
             % % get center pixel

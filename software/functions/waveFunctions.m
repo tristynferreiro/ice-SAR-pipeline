@@ -72,7 +72,7 @@ function [wave_spectrum] = waveSpectrum(wave_number_spectrum, omega, k, directio
     wave_spectrum = d2wd ./ (2 * pi);
     
     final_direction_bins = linspace(min(direction_bins_degrees),max(direction_bins_degrees),sar_transect_size);
-    final_frequency_bins = linspace(min(omega./(2*pi)),max(omega./(2*pi)),sar_transect_size);
+    final_frequency_bins = linspace(min(omega(:)./(2*pi)),max(omega(:)./(2*pi)),sar_transect_size);
     [F, D] = meshgrid(final_frequency_bins, final_direction_bins');
     
     figure;
@@ -80,12 +80,13 @@ function [wave_spectrum] = waveSpectrum(wave_number_spectrum, omega, k, directio
     xlabel("Frequency"); ylabel('Direction [degrees]');title("Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"); c = colorbar();c.Label.String = '[m^2 s / degree]"';
 end
 
-function [Hs,Tm,wave_direction_radians,total_variance_or_energy] = calculateSpectrumCharacteristics(direction_bins_degrees,frequency_bins,wave_spectrum)
+function [Hs,Tm,wave_direction,total_variance_or_energy] = calculateSpectrumCharacteristics(direction_bins_degrees,frequency_bins,wave_spectrum,sar_transect_size)
 %CalculateSpectrumCharacteristics Calculate the integral values of the wave
 %spectrum
 %   wave_spectrum = E(f, theta)
     
     direction_bins = direction_bins_degrees * pi/180; % Convert to rads
+    
 % Significant wave height
 
     % Calculate the 0th order moments (m_n) [Eq.8]
@@ -108,7 +109,7 @@ function [Hs,Tm,wave_direction_radians,total_variance_or_energy] = calculateSpec
    
     % Calculate the mean Direction of the wave
     wave_direction = atand(b1./a1); %[Eq.6]
-    wave_direction_radians = wave_direction * pi/180;
+    % wave_direction_radians = wave_direction * pi/180;
     
    
 % Spectral Denisty
