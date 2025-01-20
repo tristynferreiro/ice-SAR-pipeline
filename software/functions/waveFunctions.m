@@ -17,7 +17,7 @@ function [E_kx_ky, Jacobian,kx_matrix,ky_matrix] = waveNumberSpectrum(wave_spect
     
 % Wave Number Spectrum E(kx,ky)
     % First convert to omega from frequency
-    era5_d2wd = wave_spectrum .* (2 * pi); % conver E(f, theta) to E(w, theta)
+    era5_d2wd = wave_spectrum ./ (2 * pi); % conver E(f, theta) to E(w, theta)
 
     % Wave phase speed (c_w) for deep water
     % era5_cw_wave_speed = gravity ./ (era5_omega); % c_0, [Eq.5.4.24 Holthuijsen]
