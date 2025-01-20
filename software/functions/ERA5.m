@@ -1,9 +1,28 @@
 classdef ERA5
-    %ERA5 Summary of this class goes here
+%ERA5 Summary of this class goes here
     %   Detailed explanation goes here
     %
     % All the properties are set using the official ERA5 model
     % documentation: https://confluence.ecmwf.int/display/CKB/ERA5%3A+data+documentation
+    %   Specifically:
+        % "
+        % The NetCDF wave spectra file will have the dimensions longitude, latitude, direction, frequency and time.
+        % However, the direction and frequency bins are simply given as 1 to 24 and 1 to 30, respectively.
+        % The direction bins start at 7.5 degree and increase by 15 degrees until 352.5, with 90 degree being towards the east (Oceanographic convention).
+        % The frequency bins are non-linearly spaced. The first bin is 0.03453 Hz and the following bins are: f(n) = f(n-1)*1.1; n=2,30. 
+        % The data provided is the log10 of spectra density. To obtain the spectral density one has to take to the power 10 (10 ** data). This will give the units 2D wave spectra as m**2 s radian**-1 . Very small values are discarded and set as missing values. These are essentially 0 m**2 s radian**-1.
+        % This recoding can be done with the Python xarray package, for example:
+        % import xarray as xr
+        % import numpy as np
+        % da = xr.open_dataarray('2d_spectra_201601.nc')
+        % da = da.assign_coords(direction=np.arange(7.5, 352.5 + 15, 15))
+        % da = da.assign_coords(frequency=np.full(30, 0.03453) * (1.1 ** np.arange(0, 30)))
+        % da = 10 ** da
+        % da = da.fillna(0)
+        % da.to_netcdf(path='2d_spectra_201601_recoded.nc')
+        % Units of 2D wave spectra
+        % Once decoded, the units of 2D wave spectra are m2 s radian-1
+        % "
 
     properties
         FilePath
@@ -100,26 +119,25 @@ classdef ERA5
             era5_direction_bins_adjusted = obj.DirectionBins + sar_azimuth_to_north_angle;
         end
         
-        function [era5_d2fd, lat_match_index,lon_match_index, time_match_index] = getSlicedWaveSpectrumD2Fd(obj,sar_center_latitude,sar_center_longitude,sar_time)
+        function [era5_d2fd, era5_lat,era5_lon, era5_time] = getSlicedWaveSpectrumD2Fd(obj,sar_center_latitude,sar_center_longitude,sar_time)
             % This method returns the ERA5 wave spectrum, E(f, theta)
             % sliced at the best match of the specified lat,lon and time
             % NOTE: lat and lon should be center of the sar transect.
 
             era5_d2fd_all_5dims = obj.getAllWaveSpectrumD2FD;
-            era5_lon = obj.getLongitude;
-            era5_lat = obj.getLatitude;
+            era5_lon_all = obj.getLongitude;
+            era5_lat_all = obj.getLatitude;
             
-            [~,lat_match_index] = min(abs(era5_lat - sar_center_latitude));
-            [~,lon_match_index] = min(abs(era5_lon - sar_center_longitude));
+            [~,lat_match_index] = min(abs(era5_lat_all - sar_center_latitude));
+            [~,lon_match_index] = min(abs(era5_lon_all - sar_center_longitude));
 
-            
-            era5_time = obj.getTime;
+            era5_time_all = obj.getTime;
 
             % Find the slice that matches the SAR image
-            era5_date_only = dateshift(era5_time, 'start', 'day');
+            era5_date_only = dateshift(era5_time_all, 'start', 'day');
             sar_date_only = dateshift(sar_time, 'start', 'day');
             time_match_index = era5_date_only == sar_date_only;
-            time_match_index = find(hour(era5_time(time_match_index)) == hour(sar_time));
+            time_match_index = find(hour(era5_time_all(time_match_index)) == hour(sar_time));
 
             % Slice the data
             era5_d2fd(:,:) = era5_d2fd_all_5dims(lon_match_index,lat_match_index,:,:,time_match_index);
@@ -127,8 +145,14 @@ classdef ERA5
             if(all(era5_d2fd == 0))
                 era5_d2fd(:,:) = era5_d2fd_all_5dims(lat_match_index,lon_match_index,:,:,time_match_index);
             end
+
             % Transpose the data so that it is [dir frq] not [frq dir]
             era5_d2fd = era5_d2fd';
+
+            % Return the latitudes and longitudes
+            era5_lon = era5_lon_all(lon_match_index);
+            era5_lat = era5_lat_all(lat_match_index);
+            era5_time = era5_time_all(time_match_index);
 
         end
 
@@ -152,6 +176,7 @@ classdef ERA5
             % find matches to the SAR transect
             [~,lat_match_index] = min(abs(era5_lat_single - sar_center_latitude));
             [~,lon_match_index] = min(abs(era5_lon_single - sar_center_longitude));
+            % lon_match_index = lon_match_index-1;
             longitude = era5_lon_single(lon_match_index);
             latitude = era5_lat_single(lat_match_index);
 

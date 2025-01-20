@@ -79,7 +79,6 @@ handh.generateSARSpectrumFromWaveNumberSpectrum = @generateSARSpectrumFromWaveNu
 end
 
 % From paper
-
 function omega = defineGravityWaveFrequency(g,k)
     omega = sqrt(g*k);
 end 
@@ -314,7 +313,7 @@ end
 %% Generate the first guess SAR Spectrum
 % Use an input wave number spectrum to generate the equivalent SAR spectrum
 
-function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, transect_number, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
+function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, transect_number, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
     % sar_transect_size typically = 128
 
     %% SAR metadata attributes
@@ -327,10 +326,7 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
     sar_incidence_angle_degrees = SatelliteObject.TransectIncidenceAngles(transect_number,2).Value;
     
     % Get the slant range at the scenter of the SAR transect
-    sar_slant_range = SatelliteObject.TransectSlantRanges(transect_number,2).Value;
-    
-    % 
-    sar_beta = defineBeta(sar_slant_range, sar_platform_velocity); %[Eq.15, H&H 1991]
+    sar_transect_slant_range = SatelliteObject.TransectSlantRanges(transect_number,2).Value;
 
     sar_look_direction = SatelliteObject.LookDirection;
 
@@ -396,6 +392,10 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
     % Range Velocity MTF
     Tv_k = rangeVelocityMTF(first_guess_omega, ...
         sar_incidence_angle_degrees, first_guess_kx_range, first_guess_k); % [Eq.17, H&H 1991]
+
+    % Velocity Bunching Factor - this slightly differs between transects
+    % and so needs to be calculated for each transect.
+    sar_beta = defineBeta(sar_transect_slant_range, sar_platform_velocity); %[Eq.15, H&H 1991]
 
     % Velocity Bunching MTF
     Tvb_k = velocityBunchingMTF(sar_beta, first_guess_ky_azimuth, Tv_k);% [Eq.24, H&H 1991]
@@ -500,26 +500,26 @@ function PS_k = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plots
 
     % Nonlinear Mapping Transform
     % Calculate the Nonlinear Mapping Transform SAR Spectrum using the spectral series expansion terms
-    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r,xi_sqr, first_guess_kx_range,sar_azimuth_resolution, sar_transect_size);
+    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, first_guess_kx_range, sar_azimuth_resolution, sar_transect_size);
     
-    dk = (sar_azimuth_resolution / (sar_transect_size*2*pi))^2; % [Eq.45, H&H 1991]
-
-    % Plots: Generated SAR Spectrum
-    if plotsON
-        figure('Position', [100, 100, 1200, 300]);
-        subplot(1,3,1);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_1.*dk),40);
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Linear SAR Spectrum, P^S_linear = P^S_1"); colorbar;
-        subplot(1,3,2);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_ql.*dk),40);
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear SAR Spectrum, P^S_ql"); colorbar;
-        subplot(1,3,3);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_k.*dk),40);
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_k"); colorbar;
-    end
+    % dk = (sar_azimuth_resolution / (sar_transect_size*2*pi))^2; % [Eq.45, H&H 1991]
+    % 
+    % % Plots: Generated SAR Spectrum
+    % if plotsON
+    %     figure('Position', [100, 100, 1200, 300]);
+    %     subplot(1,3,1);
+    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_1.*dk),40);
+    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Linear SAR Spectrum, P^S_linear = P^S_1"); colorbar;
+    %     subplot(1,3,2);
+    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_ql.*dk),40);
+    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear SAR Spectrum, P^S_ql"); colorbar;
+    %     subplot(1,3,3);
+    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_k.*dk),40);
+    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_k"); colorbar;
+    % end
     
     % disp("Successfully generated SAR Spectrum.");
 end
@@ -535,8 +535,6 @@ function xi = azimuthalDisplacement(beta,v)
     %[Eq.14, H&H 1991]
     xi = beta * v;
 end
-
-
 
 function v = orbitalVelocity(orbital_velocity_metadata)
     % This is defined below [Eq.15, H&H 1991] on page 10,716

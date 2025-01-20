@@ -18,7 +18,7 @@ classdef Sentinel1A
         % % SlantRangeToFirstPixel
         % SlantRangeToTransect
         % IncidenceAngleTransect
-        SatelliteVelocity           % [m/s]
+        SatelliteVelocity           % [m/s] 
         SceneOrientationAngle       % [degrees] Azimuthal Angle / Platform Heading / Scene Orientation
         TransectSlantRanges
         TransectIncidenceAngles
@@ -152,17 +152,13 @@ classdef Sentinel1A
             % meta_orb_y = [metadata_attributes(y_vel_indices(time_index)).Value];
             % meta_orb_z =
             % [metadata_attributes(z_vel_indices(time_index)).Value];
-
+            % ****************************************************
             obj.TransectSlantRanges = table([],[], 'VariableNames', {'Field', 'Value'});
             obj.TransectIncidenceAngles = table([],[], 'VariableNames', {'Field', 'Value'});
 
         end
 
         %------------------------------------------------------------------
-        
-        
-        
-        
         %------------------------------------------------------------------
         % function obj = getSatelliteVelocity(obj)
         %     %GETSATELLITEVELOCITY Summary of this method goes here
