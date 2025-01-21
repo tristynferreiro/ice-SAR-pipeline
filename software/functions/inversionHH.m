@@ -1,8 +1,6 @@
 function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_69,P_best_eq69,F_best_eq69] = inversionHH(inversion_iterations, nonlinearity_order, cosmo, handh, plotsON, P_obs, F_first_guess, transect_number, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k , Tv_k, sar_beta, TS_k)
 %H&H1991 Inversion Contains all three inversion equations
 %   
-
-    
     kx = first_guess_kx_range(1,:); % This is required for integration
     ky = first_guess_ky_azimuth(:,1); % This is required for integration
     

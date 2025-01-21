@@ -238,15 +238,15 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
     % Calculate the spectrum for all nonlinear orders > 1
     for nonlinearity = 2:nonlinearity_order
         % Spectral Expansion Term 1
-        PS_2n = spectralExpansion2nTerm(nonlinearity, fv_r); % [Eq.51, H&H 1991]
+        PS_2n = abs(spectralExpansion2nTerm(nonlinearity, fv_r)); % [Eq.51, H&H 1991]
         coefficient_2n = (k_azimuth .* sar_beta).^(2*nonlinearity);
     
         % Spectral Expansion Term 2
-        PS_2n_minus_1 = spectralExpansion2nMinus1Term(nonlinearity,fv_r, fRv_r, rot90(fRv_r,2)); % [Eq.52, H&H 1991]
+        PS_2n_minus_1 = abs(spectralExpansion2nMinus1Term(nonlinearity,fv_r, fRv_r, rot90(fRv_r,2))); % [Eq.52, H&H 1991]
         coefficient_2n_minus_1 = ((k_azimuth .* sar_beta).^(2*nonlinearity-1));
     
         % Spectral Expansion Term 3
-        PS_2n_minus_2 = spectralExpansion2nMinus2Term(nonlinearity, fv_r, fRv_r, rot90(fRv_r,2),  fRv_r(1,1), fR_r); % [Eq.53, H&H 1991]
+        PS_2n_minus_2 = abs(spectralExpansion2nMinus2Term(nonlinearity, fv_r, fRv_r, rot90(fRv_r,2),  fRv_r(1,1), fR_r)); % [Eq.53, H&H 1991]
         coefficient_2n_minus_2 = (k_azimuth .* sar_beta).^(2*nonlinearity-2);
         
         sum = ((coefficient_2n .* PS_2n) + (coefficient_2n_minus_1 .* PS_2n_minus_1) + (coefficient_2n_minus_2 .* PS_2n_minus_2));
@@ -263,26 +263,29 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
         %         PS_k = PS_k + coefficient .* PS_2n;
         %     end
         % end
+
         if plotsON
             figure('Position', [100, 100, 1600, 300]);
-            title("Nonlinear order = %d",nonlinearity);
-            subplot(1,4,1);
-            contour(k_range, k_azimuth, abs(PS_2n),40);
-            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Spectral Expansion Term 1, P^S_{2n}", "n = "+nonlinearity); colorbar;
+                title("Nonlinear order = %d",nonlinearity);
+            subplot(1,4,1); 
+                plotFunctions().waveNumberSpectrum(PS_2n, k_range, k_azimuth, ("Spectral Expansion Term 1, P^S_{2n} & n = " + nonlinearity));
+                % plotFunctions().waveNumberSpectrum(abs(PS_2n), k_range, k_azimuth, ("Spectral Expansion Term 1, P^S_{2n} & n = " + nonlinearity));
+                % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
             subplot(1,4,2);
-            contour(k_range, k_azimuth, abs(PS_2n_minus_1),40);
-            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 2, P^S_{2n-1}", "n = "+nonlinearity); colorbar;
+                plotFunctions().waveNumberSpectrum(PS_2n_minus_1, k_range, k_azimuth, ("Spectral Expansion Term 2, P^S_{2n-1} & n = " + nonlinearity));
+                % plotFunctions().waveNumberSpectrum(abs(PS_2n_minus_1), k_range, k_azimuth, ("Spectral Expansion Term 2, P^S_{2n-1} & n = " + nonlinearity));
+                % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+            
             subplot(1,4,3);
-            contour(k_range, k_azimuth, abs(PS_2n_minus_2),40);
-            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Spectral Expansion Term 3, P^S_{2n-2}", "n = "+nonlinearity); colorbar;
+                plotFunctions().waveNumberSpectrum(PS_2n_minus_2, k_range, k_azimuth, ("Spectral Expansion Term 3, P^S_{2n-2} & n = " + nonlinearity));
+                % plotFunctions().waveNumberSpectrum(abs(PS_2n_minus_2), k_range, k_azimuth, ("Spectral Expansion Term 3, P^S_{2n-2} & n = " + nonlinearity));
+                % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+                
             subplot(1,4,4);
-            contour(k_range, k_azimuth, abs((sum)),40);
-            % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-            xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Sum of the nonlinear terms, P^S_{sum of terms}", "n = "+nonlinearity); colorbar;
+                plotFunctions().waveNumberSpectrum(sum, k_range, k_azimuth, ("Sum of the nonlinear terms, P^S_{sum of terms} & n = " + nonlinearity));
+                % plotFunctions().waveNumberSpectrum(abs(sum), k_range, k_azimuth, ("Sum of the nonlinear terms, P^S_{sum of terms} & n = " + nonlinearity));
         end
+
          % Update ps_k
         ps_k = ps_k + sum;
     end
@@ -293,18 +296,11 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
 
     if plotsON
         figure('Position', [100, 100, 1200, 300]);
-        subplot(1,3,1);
-        contour(k_range, k_azimuth, abs(ps_nl_only),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title( "Nonlinear Spectral Terms", "nonlinearity order = "+nonlinearity); colorbar;
-        subplot(1,3,2);
-        contour(k_range, k_azimuth, abs(PS_ql),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear Spectrum, P^S_{ql}", "nonlinearity order = "+nonlinearity); colorbar;
-        subplot(1,3,3);
-        contour(k_range, k_azimuth, abs(PS_nl),40);
-        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_{k}", "nonlinearity order = "+nonlinearity); colorbar;
+        subplot(1,3,1); plotFunctions().waveNumberSpectrum(ps_nl_only, k_range, k_azimuth, ("Nonlinear Spectral Terms & nonlinearity order = "+nonlinearity));
+        
+        subplot(1,3,2); plotFunctions().waveNumberSpectrum(PS_ql, k_range, k_azimuth, ("Quasilinear Spectrum, P^S_{ql} & nonlinearity order = "+nonlinearity));
+       
+        subplot(1,3,3); plotFunctions().waveNumberSpectrum(PS_nl, k_range, k_azimuth, ("Generated SAR Spectrum, P^S_{k} & nonlinearity order = "+nonlinearity));
     end
 end
 
@@ -313,7 +309,7 @@ end
 %% Generate the first guess SAR Spectrum
 % Use an input wave number spectrum to generate the equivalent SAR spectrum
 
-function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, transect_number, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
+function [PS_k,TS_k, Tv_k, sar_beta,xi_sqr] = generateSARSpectrumFromWaveNumberSpectrum(SatelliteObject, plotsON, transect_number, nonlinearity_order, sar_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k,first_guess_wave_number_spectrum)
     % sar_transect_size typically = 128
 
     %% SAR metadata attributes
@@ -356,13 +352,12 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
     % Plots: RAR MTF Development
     % The RAR MTF plot should look something like the H&H Figure 3.
     if plotsON
-        figure('Position', [100, 100, 1000, 300]);
-        subplot(1,3,1); contour(first_guess_kx_range, first_guess_ky_azimuth, Tt_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}");title("Tilt MTF"); colorbar;
-        subplot(1,3,2); contour(first_guess_kx_range, first_guess_ky_azimuth,Th_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Hydrodynamic MTF"); colorbar;
-        subplot(1,3,3); contour(first_guess_kx_range, first_guess_ky_azimuth,TR_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("RAR MTF"); colorbar;
+        figure('Position', [0, 0, 1000, 300]);
+        subplot(1,3,1); plotFunctions().generalSpectrumPlots(0,Tt_k, first_guess_kx_range, first_guess_ky_azimuth, "Tilt MTF");
+
+        subplot(1,3,2); plotFunctions().generalSpectrumPlots(0,Th_k, first_guess_kx_range, first_guess_ky_azimuth, "Hydrodynamic MTF");
+        
+        subplot(1,3,3); plotFunctions().generalSpectrumPlots(0,TR_k, first_guess_kx_range, first_guess_ky_azimuth, "RAR MTF");
     end
 
     % RAR Image Variance Spectrum calculation
@@ -371,10 +366,9 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
     
     % Plots: RAR Spectrum
     if plotsON
-        figure('Position', [100, 100, 300, 300]);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, PR_k,40);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("RAR Image Variance Spectrum, P^{R}_{k}");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]); colorbar;
+        figure('Position', [0, 0, 300, 300]);
+        plotFunctions().generalSpectrumPlots(0,PR_k, first_guess_kx_range, first_guess_ky_azimuth, "RAR Image Variance Spectrum, P^{R}_{k}");
+        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
     end
     
     % disp("Successfully completed Frozen Surface Contribution calculations.");
@@ -405,19 +399,14 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
 
     % Plots: SAR MTF Development
     if plotsON
-        figure('Position', [100, 100, 1600, 300]);
-        subplot(1,4,1); contour(first_guess_kx_range, first_guess_ky_azimuth,Tv_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Range Velocity MTF");
-        colorbar;
-        subplot(1,4,2); contour(first_guess_kx_range, first_guess_ky_azimuth,Tvb_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Velocity Bunching MTF");
-        colorbar;
-        subplot(1,4,3); contour(first_guess_kx_range, first_guess_ky_azimuth,TR_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("RAR MTF");
-        colorbar;
-        subplot(1,4,4); contour(first_guess_kx_range, first_guess_ky_azimuth,TS_k);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}");title("SAR imaging MTF");
-        colorbar;
+        figure('Position', [0, 0, 1600, 300]);
+        subplot(1,4,1); plotFunctions().generalSpectrumPlots(0,Tv_k, first_guess_kx_range, first_guess_ky_azimuth, "Range Velocity MTF");
+        
+        subplot(1,4,2); plotFunctions().generalSpectrumPlots(0,Tvb_k, first_guess_kx_range, first_guess_ky_azimuth, "Velocity Bunching MTF");
+        
+        subplot(1,4,3); plotFunctions().generalSpectrumPlots(0,TR_k, first_guess_kx_range, first_guess_ky_azimuth, "RAR MTF");
+        
+        subplot(1,4,4); plotFunctions().generalSpectrumPlots(0,TS_k, first_guess_kx_range, first_guess_ky_azimuth, "SAR imaging MTF");
     end
 
     % SAR Image Variance Spectrum, PS_k = PS_1 (Linear Mapping Transform)
@@ -431,11 +420,10 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
     
     % Plots: Linear SAR Spectrum
     if plotsON
-        figure('Position', [100, 100, 300, 300]);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, PS_k_linear);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Image Variance Spectrum, P^S_1 ");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        colorbar; grid on;
+        figure('Position', [0, 0, 300, 300]); 
+        plotFunctions().generalSpectrumPlots(0,PS_k_linear, first_guess_kx_range, first_guess_ky_azimuth, "Image Variance Spectrum, P^S_1 ");
+        % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
+
     end
     
     % disp("Successfully completed Motion Effects calculations.");
@@ -456,20 +444,12 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
 
      % Plots: Quasilinear SAR Spectrum Development
     if plotsON
-        figure('Position', [100, 100, 1200, 300]);
-        subplot(1,3,1);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(fv_r),40);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Orbital Velocity Covariance Function, f^v(r)");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        grid on; colorbar;
-        subplot(1,3,2);
-        contour( first_guess_kx_range, first_guess_ky_azimuth, azimuthal_cutoff_factor,40); 
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Azimuthal Cutoff Factor"); colorbar;
-        subplot(1,3,3);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_ql),40);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear Mapping Transform, P^S_{ql}");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        grid on; colorbar;
+        figure('Position', [0, 0, 1200, 300]);
+        subplot(1,3,1); plotFunctions().generalSpectrumPlots(0,fv_r, first_guess_kx_range, first_guess_ky_azimuth, "Orbital Velocity Covariance Function, f^v(r)");
+
+        subplot(1,3,2); plotFunctions().generalSpectrumPlots(0,azimuthal_cutoff_factor, first_guess_kx_range, first_guess_ky_azimuth, "Azimuthal Cutoff Factor");
+        
+        subplot(1,3,3); plotFunctions().generalSpectrumPlots(0,PS_ql, first_guess_kx_range, first_guess_ky_azimuth, "Quasilinear Mapping Transform, P^S_{ql}");
     end
 
 
@@ -482,44 +462,32 @@ function [PS_k,first_guess_kx_range] = generateSARSpectrumFromWaveNumberSpectrum
 
     % Plots: Autocovariance and covariance functions
     if plotsON
-        figure('Position', [100, 100, 1200, 300]);
-        subplot(1,3,1);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(fv_r),40);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Orbital Velocity Covariance, f^v(r)");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        grid on; colorbar;
-        subplot(1,3,2);
-        contour(first_guess_kx_range, first_guess_ky_azimuth,abs(fR_r),40); 
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("RAR Image Intensity Autocovariance, f^{R}(r)"); colorbar;
-        subplot(1,3,3);
-        contour(first_guess_kx_range, first_guess_ky_azimuth, abs(fRv_r),40);
-        xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Covariance of RAR Image and Oribital Velocity, f^{Rv}(r)");
-        xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-        grid on; colorbar;
+        figure('Position', [0, 0, 1200, 300]);
+        subplot(1,3,1); plotFunctions().generalSpectrumPlots(0,fv_r, first_guess_kx_range, first_guess_ky_azimuth, "Orbital Velocity Covariance, f^v(r)");
+
+        subplot(1,3,2); plotFunctions().generalSpectrumPlots(0,fR_r, first_guess_kx_range, first_guess_ky_azimuth, "RAR Image Intensity Autocovariance, f^{R}(r)");
+
+        subplot(1,3,3); plotFunctions().generalSpectrumPlots(0,fRv_r, first_guess_kx_range, first_guess_ky_azimuth, "Covariance of RAR Image and Oribital Velocity, f^{Rv}(r)");
     end
 
     % Nonlinear Mapping Transform
     % Calculate the Nonlinear Mapping Transform SAR Spectrum using the spectral series expansion terms
-    PS_k = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, first_guess_kx_range, sar_azimuth_resolution, sar_transect_size);
+    PS_nonlinear = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonlinearity_order, PS_ql, first_guess_ky_azimuth, sar_beta, fv_r, fRv_r, fR_r, xi_sqr, first_guess_kx_range, sar_azimuth_resolution, sar_transect_size);
     
     % dk = (sar_azimuth_resolution / (sar_transect_size*2*pi))^2; % [Eq.45, H&H 1991]
-    % 
-    % % Plots: Generated SAR Spectrum
-    % if plotsON
-    %     figure('Position', [100, 100, 1200, 300]);
-    %     subplot(1,3,1);
-    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_1.*dk),40);
-    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Linear SAR Spectrum, P^S_linear = P^S_1"); colorbar;
-    %     subplot(1,3,2);
-    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_ql.*dk),40);
-    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Quasilinear SAR Spectrum, P^S_ql"); colorbar;
-    %     subplot(1,3,3);
-    %     contour(first_guess_kx_range, first_guess_ky_azimuth, abs(PS_k.*dk),40);
-    %     xlim([-0.08 0.08]); ylim([-0.08 0.08]);
-    %     xlabel("k_{x = range}"); ylabel("k_{y = azimuth}"); title("Generated SAR Spectrum, P^S_k"); colorbar;
-    % end
+    dk = 1;
+
+    PS_k = PS_nonlinear .* dk;
+
+    % Plots: Generated SAR Spectrum
+    if plotsON
+        figure('Position', [0, 0, 1200, 300]);
+        subplot(1,3,1); plotFunctions().generalSpectrumPlots(0,PS_1, first_guess_kx_range, first_guess_ky_azimuth, "Linear SAR Spectrum, P^S_linear = P^S_1");
+ 
+        subplot(1,3,2); plotFunctions().generalSpectrumPlots(0,PS_ql, first_guess_kx_range, first_guess_ky_azimuth, "Quasilinear SAR Spectrum, P^S_ql");
+
+        subplot(1,3,3); plotFunctions().generalSpectrumPlots(0,PS_k, first_guess_kx_range, first_guess_ky_azimuth, "Generated SAR Spectrum, P^S_k");
+    end
     
     % disp("Successfully generated SAR Spectrum.");
 end

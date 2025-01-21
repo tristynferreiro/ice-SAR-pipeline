@@ -1,4 +1,4 @@
-function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, sar_sub_transect_size, azimuth_resolution, k, size_of_filter_window, width_of_gaussian_lobe, cutoff,first_guess_sar_spectrum)
+function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, sar_sub_transect_size, sar_azimuth_resolution, k, size_of_filter_window, width_of_gaussian_lobe, cutoff,first_guess_sar_spectrum)
     %UNTITLED3 Summary of this function goes here
     %   Detailed explanation goes here
 
@@ -17,13 +17,12 @@ function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, s
       
             filtered_image = filtered_image / average - 1; % -1 to remove the new average which = 1 
           
-       
             filtered_image = abs(fftshift(fft2(filtered_image))).^2; % Standard procedure (find in literature)
             sar_sub_transect = sar_sub_transect + filtered_image;
         end
     end
 
-    sar_sub_transect = (azimuth_resolution / (2 * pi * sar_sub_transect_size))^2 * sar_sub_transect; 
+    % sar_sub_transect = (sar_azimuth_resolution / (2 * pi * sar_sub_transect_size))^2 * sar_sub_transect; 
     sar_sub_transect = sar_sub_transect / (dimension)^2;
     
     if (cutoff ~= -1)

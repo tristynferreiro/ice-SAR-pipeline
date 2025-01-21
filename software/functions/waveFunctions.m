@@ -21,7 +21,7 @@ function [E_kx_ky, Jacobian,kx_matrix,ky_matrix] = waveNumberSpectrum(wave_spect
 
     % Wave phase speed (c_w) for deep water
     % era5_cw_wave_speed = gravity ./ (era5_omega); % c_0, [Eq.5.4.24 Holthuijsen]
-    era5_cw_wave_speed = omega ./k; % c, [Eq.3.5.36 Holthuijsen] same as above
+    era5_cw_wave_speed = omega ./ k; % c, [Eq.3.5.36 Holthuijsen] same as above
     
     % Group wave speed (c_g)
     era5_n_dispersion_scaling_factor = 0.5; % 0.5 is used for deep water, [Eq.5.4.32 Holthuijsen]
