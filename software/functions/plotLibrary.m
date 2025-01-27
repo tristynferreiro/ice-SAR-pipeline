@@ -1,4 +1,4 @@
-function plots = plotFunctions
+function plots = plotLibrary
 % Plot  Library 
 %   This contains all of the functions relating to plots
 

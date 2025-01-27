@@ -1,4 +1,4 @@
-function handh = hAndH1991Functions
+function handh = hAndH1991Library
 % H&H,1991: All functions used in H&H, 1991
 %{
 

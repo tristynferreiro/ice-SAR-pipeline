@@ -1,4 +1,4 @@
-function transects = transectFunctions
+function transects = transectLibrary
 % Wave Function Library 
 %   This contains all of the functions relating to waves
 

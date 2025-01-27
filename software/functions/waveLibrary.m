@@ -1,4 +1,4 @@
-function waves = waveFunctions
+function waves = waveLibrary
 % Wave Function Library 
 %   This contains all of the functions relating to waves
 
