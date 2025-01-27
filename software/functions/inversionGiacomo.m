@@ -23,8 +23,10 @@ function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_
     % end
     ky = first_guess_ky_azimuth(:,1);
 
-    Jmax = 1e15;
-    epsmax = 1e15;
+    % Jmax = 1e15;
+    % epsmax = 1e15;
+    first_iteration_check = true;
+
     % Iterative inversion
     for n = 1:inversion_iterations
 
@@ -35,6 +37,7 @@ function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_
             B = 1e-2 * max(S_old_guess);
             mu0 = 1e-1 * max(P_obs(:)).^2;
             mu_k = mu0;
+
         else
             B = 1e-2 * max(S_old_guess);
             mu_k = mu0 ./ (B + S_old_guess).^2;
@@ -94,21 +97,35 @@ function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_
         eps(n) = trapz(kx, trapz(ky, (P_guess - P_obs).^2 .* anello ,1),2) ./ sqrt(trapz(kx, trapz(ky, (P_obs).^2 .* anello ,1),2)) ./ sqrt(trapz(kx, trapz(ky, (P_guess).^2 .* anello ,1),2));
         
         %% Store the best fit spectra
-        if eps(n) < epsmax
-            display("EPS iteration " + n)
-            epsmax = eps(n);
+        if first_iteration_check
+           Jmax =  J(n);
+           epsmax = eps(n);
             
-            F_best_giacomo_eps = S_guess;
-            P_best_giacomo_eps = P_guess;
-        end
-        if J(n) < Jmax
-            display("J iteration " + n)
-            Jmax = J(n);
+           display("EPS iteration " + n)
+           F_best_giacomo_eps = S_guess;
+           P_best_giacomo_eps = P_guess;
             
-            F_best_giacomo_J = S_guess;
-            P_best_giacomo_J = P_guess;
-  
-        S_old_guess = S_guess;
+           display("J iteration " + n)
+           F_best_giacomo_J = S_guess;
+           P_best_giacomo_J = P_guess;
+           first_iteration_check = false;
+        else
+            if eps(n) < epsmax
+                display("EPS iteration " + n)
+                epsmax = eps(n);
+                
+                F_best_giacomo_eps = S_guess;
+                P_best_giacomo_eps = P_guess;
+            end
+            if J(n) < Jmax
+                display("J iteration " + n)
+                Jmax = J(n);
+                
+                F_best_giacomo_J = S_guess;
+                P_best_giacomo_J = P_guess;
+      
+            S_old_guess = S_guess;
+            end
         end
     end
 end

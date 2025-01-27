@@ -1,6 +1,7 @@
 function [J_step0,F_new, P_new, energy_0, new_kx_0,new_ky_0,rot_angle_0,mag_0,TS_k_0, Tv_k_0, sar_beta_0,xi_sqr_0] = inversionStep0(nonlinearity_order, plotsON,transect_number, P_obs,first_guess_wave_number_spectrum,kx,ky,first_guess_omega,first_guess_k,sar_sub_transect_size, cosmo, handh)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
+    
     first_iteration_check = true;
     
     % [temp1, temp2] = find(P_obs==max(P_obs(:)));
