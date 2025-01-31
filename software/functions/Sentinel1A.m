@@ -6,7 +6,8 @@ classdef Sentinel1A
         Filepath
         ProductType
         AcquisitionMode
-        OrbitalPass             %Ascending/Descending 
+        OrbitalPass             %Ascending/Descending
+        PlatformHeading         %Azimuthal heading relative to North from S1A original data
 
         %%%%% Properties for inversion
         AcquisitionStartDatetime
@@ -19,7 +20,7 @@ classdef Sentinel1A
         % SlantRangeToTransect
         % IncidenceAngleTransect
         SatelliteVelocity           % [m/s] 
-        SceneOrientationAngle       % [degrees] Azimuthal Angle / Platform Heading / Scene Orientation
+        SceneOrientationAngle       % [degrees to North] Azimuthal Angle / Platform Heading / Scene Orientation from SNAP export
         TransectSlantRanges
         TransectIncidenceAngles
         
@@ -52,7 +53,7 @@ classdef Sentinel1A
                 "ACQUISITION_MODE",...
                 "PASS",...
                 "range_spacing","azimuth_spacing",...
-                "centre_heading","centre_heading2"                          % Azimuthal Angle / Platform Heading / Scene Orientation
+                "centre_heading","centre_heading2"                          % Azimuthal Angle / Platform Heading / Scene Orientation; center heading is angle to North (0 or 360) and center heading 2 is angle to South (180)
                 ];  
 
             % Update attribute list values to include prefix found in the
@@ -115,7 +116,12 @@ classdef Sentinel1A
 
             % Scene Orientation Angle / Azimuthal Angle / Platform Heading 
             % obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(15)).Value;
-            obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(16)).Value;
+            obj.SceneOrientationAngle  = metadata_attributes(matching_row_number(15)).Value;
+            
+            name = 'platformHeading'; % 'Original_Product_Metadata:annotation:s1a-iw-grd-vh-20241014t173427-20241014t173452-056101-06dd48-002_xml:product:generalAnnotation:productInformation:platformHeading'
+            % Find where in the structure the required attributes are 
+            [matching_index] = find(endsWith({metadata_attributes.Name},name) ==1, 1); % Find first match
+            obj.PlatformHeading = str2num(metadata_attributes(matching_index(1)).Value);
 
             % Satellite Velocity in m/s
             % Compute offsets for all indices
@@ -233,8 +239,10 @@ classdef Sentinel1A
         function azimuth_to_north_angle = azimuthToNorthAngleConversion(obj)
             % this is the angle between the azimuth plane of the SAR image
             % and the true north direction.
-            if obj.LookDirection == "right"
-                azimuth_to_north_angle = 180 - obj.SceneOrientationAngle ; % degrees
+            if obj.LookDirection == "right" && obj.OrbitalPass == 'ASCENDING'
+                azimuth_to_north_angle = -1 * (360 - obj.SceneOrientationAngle) ; % degrees
+                % The -1 is applied because the SAR geometry means that the
+                % angle is a counterclockwise rotation.
             end
         end
 

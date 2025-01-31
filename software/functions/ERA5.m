@@ -113,8 +113,7 @@ classdef ERA5
             % We need to rotate the wave spectrum so that it is aligned with the angle
             % at which the SAR data has been taken.
             %   NOTE: the angle needs to be the azimuth to north angle not
-            %   the raw scene orientation value from the Metadata (i.e. 180
-            %   - scene orientation angle OR 180+scene orientation angle)
+            %   the raw scene orientation/platform heading value from the Metadata
 
             era5_direction_bins_adjusted = obj.DirectionBins + sar_azimuth_to_north_angle;
         end
