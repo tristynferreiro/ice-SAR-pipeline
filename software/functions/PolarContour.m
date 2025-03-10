@@ -36,5 +36,5 @@ view([90 -90]);
 set(gca, 'YTick', []);                                      
 colorbar('vert');                                                           
 % ylabel('Direction [degrees] / Frequency [Hz]');                             
-xlabel('m^2s / deg');
+xlabel('m^2/Hz/rad');
 end

@@ -182,6 +182,7 @@ classdef Sentinel1A
                 error('Specified polarisation value "%s" is not valid OR does not exist in the object.',polarisation);
             else
                 sar_data = ncread(obj.Filepath,'Sigma0_'+polarisation)';
+                sar_data(isnan(sar_data)) = 0;
             end
         end
         
@@ -202,11 +203,12 @@ classdef Sentinel1A
         function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_indices,sar_transect_lon_indices)
             c = physconst('LightSpeed');
             RTT = c /2;
-            slant_range_time = ncread(obj.Filepath,"slant_range_t") .* 10e-9;
+            slant_range_time = (ncread(obj.Filepath,"slant_range_t") .* 10e-9)'; % need to transpose so that [row,column] = [lat,long]
             slant_range_time = slant_range_time(sar_transect_lat_indices,sar_transect_lon_indices); % center of the transect
             % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
-
+            slant_range_time(isnan(slant_range_time)) = 0;
             slant_range_to_transect_center = mean(slant_range_time(:)) .* RTT;
+            % slant_range_to_transect_center = slant_range_time .* RTT;
         end
 
         function [incidence_angle_at_transect] = getIncidenceAngle(obj,sar_transect_lat_indices,sar_transect_lon_indices)
@@ -216,16 +218,18 @@ classdef Sentinel1A
             %   sar_transect_lon_indices = all the longitude indices (should
             %   match what is used to slice the sar data)
             
-            incident_angle_grid = ncread(obj.Filepath,"i_angle");
+            incident_angle_grid = ncread(obj.Filepath,"i_angle")'; % need to transpose so that [row,column] = [lat,long]
 
             incidence_angle_degrees_transect = incident_angle_grid(sar_transect_lat_indices,sar_transect_lon_indices); % center of the transect
+            incidence_angle_degrees_transect(isnan(incidence_angle_degrees_transect)) = 0;
             % sar_center_incidence_angle_degrees =
             % sar_center_incidence_angle_degrees_transect(sar_transect_size/2,sar_transect_size/2);
             % % get center pixel
             % sar_center_incidence_angle_degrees =
             % sar_center_incidence_angle_degrees *
-            % ones(sar_sub_transect_size); % greate matrix
-
+            % ones(sar_sub_transect_size); % create matrix
+            
+            % incidence_angle_at_transect =incidence_angle_degrees_transect;
             incidence_angle_at_transect = mean(incidence_angle_degrees_transect(:));
         end
         

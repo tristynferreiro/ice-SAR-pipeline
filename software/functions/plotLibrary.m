@@ -9,8 +9,11 @@ plots.sarImageLatLon = @sarImageLatLon; % single SAR image on lat-lon grid
 plots.sarTransect = @sarTransect; % single SAR image on lat-lon grid
 plots.sarTransectWithBuoy = @sarTransectWithBuoy; % single SAR image on lat-lon grid with wave buoy location marker
 plots.sarTransectOnSARImage = @sarTransectOnSARImage; % image plotted on another image
+plots.sarTransectOnSARImageWithBuoyLocation = @sarTransectOnSARImageWithBuoyLocation;
+plots.threeSarTransectsOnSARImageWithBuoyLocation = @threeSarTransectsOnSARImageWithBuoyLocation;
 
-plots.waveSpectrum = @waveSpectrum; % single wave spectrum E(f, theta)
+plots.waveSpectrum1D = @waveSpectrum1D; % single wave spectrum E(f)
+plots.waveSpectrum2D = @waveSpectrum2D; % single wave spectrum E(f, theta)
 plots.waveSpectrumAdjustedToSAR = @waveSpectrumAdjustedToSAR; %
 plots.waveNumberSpectrum = @waveNumberSpectrum; % 
 
@@ -85,20 +88,24 @@ end
 function [] = sarTransect(sar_transect_data, transect_latitude_grid, transect_longitude_grid, plot_title)
 %sarTransect plot the SAR transect on latitude-longitude grids
     
-    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data);
+    sar_transect_data(isnan(sar_transect_data))=0;
+
+    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data./mean(sar_transect_data(:)));
     shading("flat"); colormap("jet"); clim([0 2]);
     title(plot_title);
-    xlabel("longitude"); ylabel("latitude");
+    xlabel("Longitude"); ylabel("Latitude");
 
 end
 
 function [] = sarTransectWithBuoy(sar_transect_data, transect_latitude_grid, transect_longitude_grid, wave_buoy_lon, wave_buoy_lat, plot_title)
 %sarTransect plot the SAR image on lat-lon grid with wave buoy location marker
     
-    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data);
-    shading("flat"); colormap("jet"); clim([0 2]);
+    sar_transect_data(isnan(sar_transect_data)) = 0;
+
+    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data./mean(sar_transect_data(:)));
+    shading("flat"); colormap("gray"); clim([0 2]);
     title(plot_title);
-    xlabel("longitude"); ylabel("latitude");
+    xlabel("Longitude"); ylabel("Latitude");
     hold on;
     plot(round(wave_buoy_lon,2), round(wave_buoy_lat,2), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
     hold off;
@@ -111,29 +118,103 @@ function [] = sarTransectOnSARImage(sar_data, latitude_grid, longitude_grid, sar
 %   The original image will then need to be transected (around the area of interest)
 %   before passing it into this function
 
-    title(plot_title);
-    xlabel("longitude"); ylabel("latitude");
-    pcolor(longitude_grid, latitude_grid, sar_data); shading("flat");
-        colormap("gray"); clim([0 2]);
+    sar_data(isnan(sar_data)) = 0;
+    sar_transect_data(isnan(sar_transect_data)) = 0;
+
+    pcolor(longitude_grid, latitude_grid, sar_data./mean(sar_data(:)));
     hold on; 
-    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data); 
-    colormap("jet");
+    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data./mean(sar_transect_data(:))); 
+    shading("flat");
+    colormap("gray"); clim([0 2]);
+    xlabel("Longitude"); ylabel("Latitude");
+    title(plot_title);
     hold off;
 
 end
 
+function [] = sarTransectOnSARImageWithBuoyLocation(sar_data, latitude_grid, longitude_grid, sar_transect_data, transect_latitude_grid, transect_longitude_grid,wave_buoy_lat,wave_buoy_lon, plot_title)
+%sarTransect plot the SAR transect on the original image
+%   Note: if the original data is too large, the pcolor will not render.
+%   The original image will then need to be transected (around the area of interest)
+%   before passing it into this function
+
+    sar_data(isnan(sar_data)) = 0;
+    sar_transect_data(isnan(sar_transect_data)) = 0;
+
+    pcolor(longitude_grid, latitude_grid, sar_data./mean(sar_data(:))); 
+    hold on; 
+    pcolor(transect_longitude_grid, transect_latitude_grid, sar_transect_data./mean(sar_transect_data(:))); 
+    shading("flat"); colormap("gray"); clim([0 2]);
+    xlabel("Longitude"); ylabel("Latitude");
+    title(plot_title);
+
+    plot(round(wave_buoy_lon,3), round(wave_buoy_lat,3), 'o', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
+    hold off;
+end
+
+function [] = threeSarTransectsOnSARImageWithBuoyLocation(sar_data, latitude_grid, longitude_grid, sar_transect_data_1, transect_latitude_grid_1, transect_longitude_grid_1, latitude_of_interest_1 ,longitude_of_interest_1, sar_transect_data_2, transect_latitude_grid_2, transect_longitude_grid_2, latitude_of_interest_2 ,longitude_of_interest_2, sar_transect_data_3, transect_latitude_grid_3, transect_longitude_grid_3, latitude_of_interest_3 ,longitude_of_interest_3, plot_title)
+%sarTransect plot the SAR transect on the original image
+%   Note: if the original data is too large, the pcolor will not render.
+%   The original image will then need to be transected (around the area of interest)
+%   before passing it into this function
+    
+    sar_data(isnan(sar_data)) = 0;
+    sar_transect_data_1(isnan(sar_transect_data_1)) = 0;
+    sar_transect_data_2(isnan(sar_transect_data_2)) = 0;
+    sar_transect_data_3(isnan(sar_transect_data_3)) = 0;
+
+    pcolor(longitude_grid, latitude_grid, sar_data./mean(sar_data(:))); 
+    shading("flat"); colormap("gray"); clim([0 2]);
+    xlabel("Longitude"); ylabel("Latitude");
+    title(plot_title);
+
+    hold on; 
+    pcolor(transect_longitude_grid_1, transect_latitude_grid_1, sar_transect_data_1./mean(sar_transect_data_1(:))); 
+    pcolor(transect_longitude_grid_2, transect_latitude_grid_2, sar_transect_data_2./mean(sar_transect_data_2(:))); 
+    pcolor(transect_longitude_grid_3, transect_latitude_grid_3, sar_transect_data_3./mean(sar_transect_data_3(:))); 
+    % shading("flat"); colormap("jet"); clim([0 2]);
+    
+
+    plot(round(longitude_of_interest_1,3), round(latitude_of_interest_1,3), 'ro', 'MarkerSize', 10, 'MarkerFaceColor', 'r');
+    plot(round(longitude_of_interest_2,3), round(latitude_of_interest_2,3), 'bo', 'MarkerSize', 10, 'MarkerFaceColor', 'b');
+    plot(round(longitude_of_interest_3,3), round(latitude_of_interest_3,3), 'go', 'MarkerSize', 10, 'MarkerFaceColor', 'g');
+    
+    % Show where ERA5 grid point seperation is
+    % [a] = find(sar_latGrid(min_lat_index:max_lat_index, min_lon_index:max_lon_index) == -34)
+    x = [17.9 18.5]; y = [-34 -34];
+    line(x,y,'Color',"#EDB120",'LineStyle','--');
+
+    x = [18 18]; y = [-34.3 -33.3];
+    line(x,y,'Color',"#EDB120",'LineStyle','--');
+    
+    hold off;
+    legend("","","","","Cape Point Buoy","Test location 2","Test location 3","ERA5 data boundary lines");
+
+end
+
+
+
 %%
-function [] = waveSpectrum(polar, wave_spectrum, frequency_bins, direction_bins, max_frequency_to_plot, plot_title)
+function [] = waveSpectrum1D(wave_spectrum, frequency_bins, plot_title)
+%waveSpectrum plot the wave spectrum E(f, theta)
+
+    plot(frequency_bins,wave_spectrum)
+    title(plot_title)
+    xlabel("Frequency, f (Hz)")
+    ylabel("Magnitude, E(f) [m^2/Hz/rad]")
+end
+
+function [] = waveSpectrum2D(polar, wave_spectrum, frequency_bins, direction_bins, max_frequency_to_plot, plot_title)
 %waveSpectrum plot the wave spectrum E(f, theta)
 
     if polar
         PolarContour(wave_spectrum, frequency_bins, max_frequency_to_plot, direction_bins, 40);
         title(plot_title);
     else
-        contour(frequency_bins,direction_bins,wave_spectrum,40);
+        contour(frequency_bins,direction_bins,wave_spectrum,20);
         xlabel("Frequency"); ylabel('Direction [degrees]');
         title(plot_title); 
-        c = colorbar();c.Label.String = '[m^2 s / degree]"';
+        c = colorbar();c.Label.String = '[m^2/Hz/rad]';
     end
 end
 

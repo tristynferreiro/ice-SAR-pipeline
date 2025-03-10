@@ -109,15 +109,6 @@ classdef ERA5
         end
 
         
-        function era5_direction_bins_adjusted = getDirectionsInSARGeometry(obj, sar_azimuth_to_north_angle)
-            % We need to rotate the wave spectrum so that it is aligned with the angle
-            % at which the SAR data has been taken.
-            %   NOTE: the angle needs to be the azimuth to north angle not
-            %   the raw scene orientation/platform heading value from the Metadata
-
-            era5_direction_bins_adjusted = obj.DirectionBins + sar_azimuth_to_north_angle;
-        end
-        
         function [era5_d2fd, era5_lat,era5_lon, era5_time] = getSlicedWaveSpectrumD2Fd(obj,sar_center_latitude,sar_center_longitude,sar_time)
             % This method returns the ERA5 wave spectrum, E(f, theta)
             % sliced at the best match of the specified lat,lon and time

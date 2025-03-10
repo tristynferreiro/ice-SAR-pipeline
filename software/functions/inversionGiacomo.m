@@ -10,7 +10,7 @@ function [F_best_giacomo_eps, P_best_giacomo_eps, eps, F_best_giacomo_J, P_best_
     k0 = first_guess_k(temp1,temp2);
     modk = first_guess_k;
     anello  = 1 - 1./(1+(k0./modk).^5); % MIGHT NEED TO ADJUST POWER (5 in this case) FOR DIFFERENT CASES
-    anello = 1;
+    % anello = 1;
     
     % Butterworth
     % butterworth  = 1 - 1./(1+(k0./modk).^20); 

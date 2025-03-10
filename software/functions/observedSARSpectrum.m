@@ -36,6 +36,8 @@ function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, s
         % k0 = k(temp1(1),temp2(1)) / 2;
 
         butterworth = 1 ./ (1 + (k0 ./ k).^(2*10));
+        % anello  = 1 - 1./(1+(k0./modk).^5); % MIGHT NEED TO ADJUST POWER (5 in this case) FOR DIFFERENT CASES
+        
         sar_spectrum = butterworth .* sar_sub_transect;
 
         % figure; surf(k,k,butterworth); title("Butterworth filter for cutoff = 500 --> k0 = 2pi/500)"); xlabel("Wavenumber,k"); ylabel("Wavenumber,k");

@@ -12,7 +12,7 @@ function [J_step0,F_new, P_new, energy_0, new_kx_0,new_ky_0,rot_angle_0,mag_0,TS
     
     energy_scales = 0.1:1:10;
     wave_number_mag_scales = 0.1:1:10;
-    rotation_angles = -30:10:30;
+    rotation_angles = -20:5:20;
 
     J_step0 = zeros(length(energy_scales), length(wave_number_mag_scales),length(rotation_angles));
     for i_energy = 1:length(energy_scales)
