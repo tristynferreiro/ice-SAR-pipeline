@@ -4,8 +4,9 @@ function waves = waveLibrary
 
 waves.calc1DWaveSpec = @calc1DWaveSpec;
 waves.waveNumberSpectrum = @waveNumberSpectrum; % E(f, direction) -> E(kx,ky)
-waves.RyanswaveNumberSpectrum = @RyanswaveNumberSpectrum;
 waves.waveSpectrum = @waveSpectrum; % E(kx,ky) -> E(f, direction)
+waves.lineariseKxandKyMatrices = @lineariseKxandKyMatrices;
+
 
 waves.interpolateWaveNumberSpectrum = @interpolateWaveNumberSpectrum;
 waves.calculate1DSpectrumCharacteristics = @calculate1DSpectrumCharacteristics;
@@ -22,12 +23,12 @@ function [S_1D, f] = calc1DWaveSpec(f, theta_rad, S_2D)
     S_1D = trapz(theta_rad,S_2D,2);
 end
 
-function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spectrum, omega ,k , direction_bins_rad)
+function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spectrum, omega ,k , direction_bins_rad, mean_wave_dir, azimuth_angle)
 %WaveNumberSpectrum convert a wave spectrum E(frequency, direction) to k domain, E(kx,ky)
 %   According to Holthuijsen: "Remote-sensing and numerical wave models can 
 %   estimate the full two-dimensional spectrum, usually the wave-number 
 %   spectrum E (k x , k y )" [pg.52 Holthuijsen] 
-    
+
 % Wave Number Spectrum E(kx,ky)
     % First convert to omega from frequency
     era5_d2wd = wave_spectrum ./ (2 * pi); % conver E(f, theta) to E(w, theta)
@@ -43,7 +44,7 @@ function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spe
     % Calculate the wave number spectrum E(kx,ky)
     Jacobian = ((era5_cw_wave_speed .* era5_cg_group_wave_speed) ./ omega ) ; % [Eq.3.5.36 Holthuijsen]
     E_kx_ky = Jacobian .* era5_d2wd; % [Eq.3.5.36 Holthuijsen]
-    
+    E_kx_ky(isnan(E_kx_ky)) = 0;
 % kx and ky variables
     % This is H&H convention:
     % era5_kx_matrix_hhdefintion = era5_k .* cosd(era5_direction_bins); % [rad/m] [Eq.3.5.19b Holthuijsen]
@@ -55,9 +56,11 @@ function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spe
     % horizontal axis (kx) is range. THIS IS DIFFERENT TO THE CASE OF H&H BUT
     % CHANGING THINGS HERE WILL MEAN NO ISSUES GOING FORWARD. IT IS IMPORTANT
     % TO NOTE THIS CONVENTION IN THE BEGINNING.
-    kx_matrix = k .* sin(direction_bins_rad); % [rad/m] [Eq.3.5.19b Holthuijsen]
-    ky_matrix = k .* cos(direction_bins_rad); % [rad/m] [Eq.3.5.19b Holthuijsen]
-
+    % direction = direction_bins_rad(105);
+    kx_matrix = k .* sin(abs(direction_bins_rad)); % [rad/m] [Eq.3.5.19b Holthuijsen]
+    ky_matrix = k .* cos(abs(direction_bins_rad)); % [rad/m] [Eq.3.5.19b Holthuijsen]
+    
+    
 % Plot the two versions of the wave number spectrum
     % CHECK THE PLOTTING DIRECTION COMPARED TO POLAR & OCEANOGRAPHY STANDARDS
     % figure('Position', [100, 100, 800, 300]);
@@ -69,16 +72,6 @@ function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spe
     % xlim([-0.1,0.1]); ylim([-0.1,0.1]);
     % xlabel("kx"); ylabel("ky"); title("Wave Number spectrum E(K) where kx = k * sin(theta) and y = k * cos(theta)");
     % grid on; colorbar;
-end
-
-function [E_k,k] = RyanswaveNumberSpectrum(waveSpectrum,w,k,d)
-
-    g = 9.81;
-    c = sqrt((g./k).*tanh(k.*d)); % tanh in radians (eq. 5.4.23 in holthuisjen) output in m/s^2
-    n = 0.5*(1+(2.*k.*d)./sinh(2.*k.*d)); % sinh in radians (eq. 5.4.32 in holthuisjen)
-    c_g = n.*c;
-    E_k = ((c.*c_g)./w).*waveSpectrum;
-
 end
 
 function [wave_spectrum, Jacobian] = waveSpectrum(wave_number_spectrum, omega, k)
@@ -106,6 +99,27 @@ function [wave_spectrum, Jacobian] = waveSpectrum(wave_number_spectrum, omega, k
     % xlabel("Frequency"); ylabel('Direction [degrees]');title("Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"); c = colorbar();c.Label.String = '[m^2 s / degree]"';
 end
 
+function [linspace_kx_matrix,linspace_ky_matrix,regridded_E_f_theta] = lineariseKxandKyMatrices(kx_matrix,ky_matrix,E_f_theta)
+
+    matrix_size = size(kx_matrix,1); % Should be square
+
+    linspace_kx_matrix = linspace(min(abs(kx_matrix(:))),max(abs(kx_matrix(:))),matrix_size/2);
+    linspace_kx_matrix = [-1*fliplr(linspace_kx_matrix) linspace_kx_matrix]; % Necessary to remove k=0 as this does not exist.
+    
+    matrix_size = size(ky_matrix,1); % Should be square
+    linspace_ky_matrix = linspace(min(abs(ky_matrix(:))),max(abs(ky_matrix(:))),matrix_size/2);
+    linspace_ky_matrix = [-1*fliplr(linspace_ky_matrix) linspace_ky_matrix]';% Necessary to remove k=0 as this does not exist.
+    
+    % linspace_ky_matrix = ones(matrix_size,matrix_size).*linspace_ky_matrix;
+
+    [linspace_kx_matrix, linspace_ky_matrix] = meshgrid(linspace_kx_matrix, linspace_ky_matrix);
+
+    % Perform interpolation
+    regridded_E_f_theta = griddata(kx_matrix, ky_matrix, E_f_theta, linspace_kx_matrix, linspace_ky_matrix, 'linear');
+    regridded_E_f_theta(isnan(regridded_E_f_theta))=0;
+    % regridded_E_f_theta = E_f_theta;
+
+end
 
 function [Hs_m0,Tm] = calculate1DSpectrumCharacteristics(f,S_1D)
     %CALCULATE1DSPECTRUMCHARACTERICS 

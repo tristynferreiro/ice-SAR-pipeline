@@ -102,6 +102,7 @@ end
 function TR_k = rarMTF(Tt_k, Th_k)
     %[Eq.4, H&H 1991]
     TR_k = Tt_k + Th_k;
+    TR_k(isnan(TR_k)) = 0;
 end
 
 function Tt_k = tiltMTF(sar_polarisation, sar_incidence_angle_degrees, k_l)
@@ -112,6 +113,7 @@ function Tt_k = tiltMTF(sar_polarisation, sar_incidence_angle_degrees, k_l)
         Tt_k = 8i.* k_l ./ (sind(2 .* sar_incidence_angle_degrees)); 
     end
     Tt_k = abs(Tt_k);
+    Tt_k(isnan(Tt_k))=0;
 end
 
 function Th_k = hydrodynamicMTF(omega, mu, k, k_range,Y_r,Y_i)
@@ -122,11 +124,13 @@ function Th_k = hydrodynamicMTF(omega, mu, k, k_range,Y_r,Y_i)
     complex_feedback_term = Y_r+1i*Y_i;
     Th_k = (omega - (1i * mu)) ./ (omega.^2 + mu.^2) .* 4.5 .* k .* omega .* ((k_range.^2./k.^2)+complex_feedback_term); %[Eq.6, H&H 1991] 
     Th_k = abs(Th_k);
+    Th_k(isnan(Th_k))=0;
 end
 
 function PR_k = rarImageVarianceSpectrum(TR_k, F_k, TR_k_neg, F_k_neg)
     %[Eq.13, H&H 1991]
     PR_k = 0.5 .* (abs(TR_k).^2.*F_k + abs(TR_k_neg).^2.*F_k_neg);
+    PR_k(isnan(PR_k)) = 0;
 end
 
 % function IR_k = imageModulationIntensity(TR_k,zeta_k,Tr_k_neg,zeta_k_neg)
@@ -140,6 +144,7 @@ function Tv_k = rangeVelocityMTF(omega, sar_incidence_angle_degrees, k_range, k)
     %[Eq.17, H&H 1991]
     Tv_k = -1 .* omega .* ((sind(sar_incidence_angle_degrees) .* (k_range ./ abs(k))) + (1i .* cosd(sar_incidence_angle_degrees))); 
     Tv_k = abs(Tv_k);
+    Tv_k(isnan(Tv_k)) = 0;
 end
 
 function beta = defineBeta(sar_slant_range, sar_platform_velocity)
@@ -152,6 +157,7 @@ function Tvb_k = velocityBunchingMTF(sar_beta, k_azimuth, Tv_k)
     Tvb_k = -1 .* sar_beta .* k_azimuth .* Tv_k;% [Eq.24, H&H 1991]
 
     Tvb_k = abs(Tvb_k);
+    Tvb_k(isnan(Tvb_k))=0;
 end
 
 function TS_k = sarImagingMTF(TR_k, Tvb_k)
@@ -365,9 +371,17 @@ function [PS_k,TS_k, Tv_k, sar_beta,xi_sqr] = generateSARSpectrumFromWaveNumberS
         subplot(1,3,1); plotLibrary().generalSpectrumPlots(0,Tt_k, first_guess_kx_range, first_guess_ky_azimuth, "Tilt MTF");
 
         subplot(1,3,2); plotLibrary().generalSpectrumPlots(0,Th_k, first_guess_kx_range, first_guess_ky_azimuth, "Hydrodynamic MTF");
-        
+
         subplot(1,3,3); plotLibrary().generalSpectrumPlots(0,TR_k, first_guess_kx_range, first_guess_ky_azimuth, "RAR MTF");
     end
+    % if plotsON
+    %     figure('Position', [0, 0, 1000, 300]);
+    %     subplot(1,3,1); plot(first_guess_kx_range,Tt_k);title( "Tilt MTF");
+    % 
+    %     subplot(1,3,2); plot(first_guess_kx_range,Th_k);title("Hydrodynamic MTF");
+    % 
+    %     subplot(1,3,3); plot(first_guess_kx_range,TR_k);title("RAR MTF");
+    % end
 
     % RAR Image Variance Spectrum calculation
     PR_k = rarImageVarianceSpectrum(TR_k,first_guess_wave_number_spectrum, ...
@@ -410,11 +424,11 @@ function [PS_k,TS_k, Tv_k, sar_beta,xi_sqr] = generateSARSpectrumFromWaveNumberS
     if plotsON
         figure('Position', [0, 0, 1600, 300]);
         subplot(1,4,1); plotLibrary().generalSpectrumPlots(0,Tv_k, first_guess_kx_range, first_guess_ky_azimuth, "Range Velocity MTF");
-        
+
         subplot(1,4,2); plotLibrary().generalSpectrumPlots(0,Tvb_k, first_guess_kx_range, first_guess_ky_azimuth, "Velocity Bunching MTF");
-        
+
         subplot(1,4,3); plotLibrary().generalSpectrumPlots(0,TR_k, first_guess_kx_range, first_guess_ky_azimuth, "RAR MTF");
-        
+
         subplot(1,4,4); plotLibrary().generalSpectrumPlots(0,TS_k, first_guess_kx_range, first_guess_ky_azimuth, "SAR imaging MTF");
     end
 
@@ -458,7 +472,7 @@ function [PS_k,TS_k, Tv_k, sar_beta,xi_sqr] = generateSARSpectrumFromWaveNumberS
         subplot(1,3,1); plotLibrary().generalSpectrumPlots(0,fv_r, first_guess_kx_range, first_guess_ky_azimuth, "Orbital Velocity Covariance Function, f^v(r)");
 
         subplot(1,3,2); plotLibrary().generalSpectrumPlots(0,azimuthal_cutoff_factor, first_guess_kx_range, first_guess_ky_azimuth, "Azimuthal Cutoff Factor");
-        
+
         subplot(1,3,3); plotLibrary().generalSpectrumPlots(0,PS_ql, first_guess_kx_range, first_guess_ky_azimuth, "Quasilinear Mapping Transform, P^S_{ql}");
     end
 

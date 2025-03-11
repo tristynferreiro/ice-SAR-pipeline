@@ -65,7 +65,6 @@ interp_size = 128;
 
 
     %% Wave Number Spectrum
-    
     w = f.*(2*pi);
     k = (w).^2 ./ 9.81;
     [E_kx_ky, Jacobian_kx_ky, kx_matrix, ky_matrix] = waveLibrary().waveNumberSpectrum(S_2D,w,k,theta_degrees.*(pi/180));
@@ -138,7 +137,7 @@ interp_size = 128;
     
     
     %% CALC THE 1D SPECTRA OF EACH
-
+    
     % Calc parameters of 1D to check that it matches the input
     [S_1D, f] = waveLibrary().calc1DWaveSpec(f, theta_degrees.*(pi/180), S_2D);
     [Hs_derived_1D,Tm_derived_1D] = waveLibrary().calculate1DSpectrumCharacteristics(f,S_1D);
