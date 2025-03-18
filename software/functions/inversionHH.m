@@ -1,4 +1,4 @@
-function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_69,P_best_eq69,F_best_eq69] = inversionHH(inversion_iterations, nonlinearity_order, cosmo, handh, plotsON, P_obs, F_first_guess, transect_number, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k , Tv_k, sar_beta, TS_k)
+function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_69,P_best_eq69,F_best_eq69] = inversionHH(inversion_iterations, nonlinearity_order, satelliteObj, handh, plotsON, P_obs, F_first_guess, transect_number, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k)
 %H&H1991 Inversion Contains all three inversion equations
 %   
     kx = first_guess_kx_range(1,:); % This is required for integration
@@ -19,17 +19,17 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
             F_n_k = F_n_old_k + delta_F_n_old; % [Eq.66 HH1991]
         end
         
-        P_n_k = handh.generateSARSpectrumFromWaveNumberSpectrum(cosmo, plotsON, transect_number, nonlinearity_order, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k, F_n_k); % [Eq.65 HH1991]
+        [P_n_k,TS_k, Tv_k, sar_beta,xi_sqr] = handh.generateSARSpectrumFromWaveNumberSpectrum(satelliteObj, plotsON, transect_number, nonlinearity_order, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k, F_n_k); % [Eq.65 HH1991]
     
         % [Eq.62 HH1991]
         term1_62 = (P_n_k - P_obs).^2;
         term2_62 = mu .* ( (F_n_k - F_first_guess) ./ (B + F_first_guess) ).^2;
-        J_eq_62(n) = trapz(kx,trapz(ky,term1_62,1),2) + trapz(kx,trapz(ky,term2_62,1),2);
+        J_eq_62(n) = trapz(kx,trapz(ky,term1_62,1),2) + trapz(kx,trapz(ky,term2_62,1),2);% dimensions = Y x X = 1 x 2;
         
         % [Eq.63 HH1991]
         term1_63 = (P_n_k - P_obs).^2 .* P_obs;
         term2_63 = mu .* ( (F_n_k - F_first_guess) ./ (B + F_first_guess) ).^2;
-        J_eq_63(n) =  trapz(kx,trapz(ky,term1_63,1),2) + trapz(kx,trapz(ky,term2_63,1),2);
+        J_eq_63(n) =  trapz(kx,trapz(ky,term1_63,1),2) + trapz(kx,trapz(ky,term2_63,1),2);% dimensions = Y x X = 1 x 2;
       
         %% Store the best fit spectra
         if(abs(J_eq_62(n)) < abs(Jmax_eq62))
@@ -51,8 +51,7 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
         Delta_P_k = P_obs - P_n_k; %[Eq.71 HH1991]
        
         fv_r_n = handh.orbitalVelocityCovarianceFunction(F_n_k, Tv_k);
-        xi_sqr_n = handh.meanSquareAzimuthalDisplacement(sar_beta, fv_r_n);
-        W_k = abs(TS_k).^2 .* exp(-first_guess_ky_azimuth.^2 .* xi_sqr_n); % [Eq.75 HH1991]
+        W_k = abs(TS_k).^2 .* exp(-first_guess_ky_azimuth.^2 .* xi_sqr); % [Eq.75 HH1991]
         W_neg_k = rot90(W_k,2); % rotated by 180 degrees
     
         B_k = W_k .* W_neg_k; % [Eq.74 HH1991]
@@ -65,12 +64,12 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
         delta_F_n = (numerator_term1 + numerator_term2)./denomenator; % [Eq.70 HH1991]
         
         % [Eq.68 HH1991] - Only used for Eq.69
-        delta_P_n = 0.5 .* exp( -first_guess_ky_azimuth.^2 .* xi_sqr_n) .* (abs(TS_k).^2 .* Delta_F_k + abs(rot90(TS_k,2)).^2 .* rot90(Delta_F_k,2));
+        delta_P_n = 0.5 .* exp( -first_guess_ky_azimuth.^2 .* xi_sqr) .* (abs(TS_k).^2 .* Delta_F_k + abs(rot90(TS_k,2)).^2 .* rot90(Delta_F_k,2));
         
         % [Eq.69 HH1991]
         intergral_term1 = (delta_P_n - (P_obs - P_n_k)).^2;
         intergral_term2 = mu .* (delta_F_n - (F_first_guess - F_n_k)).^2;
-        J_eq_69(n) = trapz(kx, trapz(ky,intergral_term1,2),1) + trapz(kx, trapz(ky,intergral_term2,2),1) ;  % [Eq.69 HH1991]
+        J_eq_69(n) = trapz(kx, trapz(ky,intergral_term1,2),1) + trapz(kx, trapz(ky,intergral_term2,2),1) ;  % [Eq.69 HH1991]% dimensions = Y x X = 1 x 2;
         
         %% Store the best fit spectra
         if abs(J_eq_69(n)) < abs(Jmax_eq69)

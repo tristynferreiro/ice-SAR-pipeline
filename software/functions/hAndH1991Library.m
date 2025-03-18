@@ -43,6 +43,7 @@ Variable Definitions:
     r = the x and y coords vector
 
 %}
+
 handh.getDirectionsInSARGeometry = @getDirectionsInSARGeometry;
 handh.removeDirectionsInSARGeometry = @removeDirectionsInSARGeometry;
 

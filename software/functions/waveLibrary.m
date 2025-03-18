@@ -20,7 +20,7 @@ waves.generateDirectionalDistribution = @generateDirectionalDistribution;
 end
 
 function [S_1D, f] = calc1DWaveSpec(f, theta_rad, S_2D)
-    S_1D = trapz(theta_rad,S_2D,2);
+    S_1D = trapz(theta_rad,S_2D,1);
 end
 
 function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spectrum, omega ,k , direction_bins_rad, mean_wave_dir, azimuth_angle)
@@ -57,6 +57,9 @@ function [E_kx_ky, Jacobian, kx_matrix, ky_matrix] = waveNumberSpectrum(wave_spe
     % CHANGING THINGS HERE WILL MEAN NO ISSUES GOING FORWARD. IT IS IMPORTANT
     % TO NOTE THIS CONVENTION IN THE BEGINNING.
     % direction = direction_bins_rad(105);
+   
+    % kx_matrix = k .* sind(mean_wave_dir+abs(azimuth_angle)); % [rad/m] [Eq.3.5.19b Holthuijsen]
+    % ky_matrix = k .* cosd(mean_wave_dir+abs(azimuth_angle)); % [rad/m] [Eq.3.5.19b Holthuijsen]
     kx_matrix = k .* sin(abs(direction_bins_rad)); % [rad/m] [Eq.3.5.19b Holthuijsen]
     ky_matrix = k .* cos(abs(direction_bins_rad)); % [rad/m] [Eq.3.5.19b Holthuijsen]
     
@@ -124,9 +127,9 @@ end
 function [Hs_m0,Tm] = calculate1DSpectrumCharacteristics(f,S_1D)
     %CALCULATE1DSPECTRUMCHARACTERICS 
     
-    m0 = trapz(f,S_1D,1);
+    m0 = trapz(f,S_1D,2);
     Hs_m0 = 4 * sqrt(m0);
-    m1 = trapz(f,S_1D .* f.^1,1);
+    m1 = trapz(f,S_1D .* f.^1,2);
     Tm = (m1/m0)^(-1); % [Holthuijsen Eq.5] 
 end
 
