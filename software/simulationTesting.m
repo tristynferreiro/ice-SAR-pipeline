@@ -1,23 +1,26 @@
+%% ==================== INITIALISATION ====================
+
 % Import libraries
 waveLibrary = waveLibrary;
-plotLibrary = plotLibrary;
-% global waveLibrary
-% global plotLibrary
 
-%% Input parameters
+% Input parameters
 numberOfFrequencyBins = 30;
 numberOfDirectionBins = 24;
+g = 9.81;        % Gravitational acceleration [m/s²]
+n = 128;        % Cartesian grid size
+showPlots = 1;
+ROTATION_ANGLE = 15; % [DEGREES]
+
+%% ==================== SIMULATED SPECTRUM ====================
 Hs = 3.3;                             % Significant wave height
 T0 = 7.2;                            % Significant wave period, this dictates the peak frequency, f_peak and w0
 mean_wave_direction_degrees = 100;
 gammaWaveValueInput = 1.3715;       % Some factor between 1 and 5
-showPlots = 1;
-ROTATION_ANGLE = 15; % [DEGREES]
 
-%% Variables 
-% Setup the frequency array like how 
+% Setup the frequency array like in ERA5 data
 f = frequencyBins(numberOfFrequencyBins, "ERA5");
 [theta_degrees, theta_rad] = directionBins(numberOfDirectionBins, mean_wave_direction_degrees, "ERA5");
+
 
 [S_1D_f, S_2D_cosm_f_theta_rad] = waveLibrary.simulateWaveSpectrum(Hs,gammaWaveValueInput,f,T0, mean_wave_direction_degrees, theta_degrees, 0, 'JONSWAP');
 
@@ -26,11 +29,11 @@ if showPlots
     subplot(1,2,1); plotLibrary().waveSpectrum1D(S_1D_f,f,"1D Simulated JONSWAP Wave Spectrum, E(f)");
         
     subplot(1,2,2); 
-    plotLibrary().waveSpectrum2D(1, abs(S_2D_cosm_f_theta_rad)', f, theta_degrees, 0.5, "Simulated 2D wave spectrum using JONSWAP and  cos^2(theta) model");
+    plotLibrary().waveSpectrum2D(1, abs(S_2D_cosm_f_theta_rad), f, theta_degrees, 0.5, "Simulated 2D wave spectrum using JONSWAP and  cos^2(theta) model");
 end
 
 
-%% Testing
+%% ==================== RUN TESTS ====================
 disp(".... STARTING TESTS ....")
 test1DWaveSpectrum(f,S_1D_f,[Hs,T0]);
 
@@ -38,7 +41,6 @@ test2DWaveSpectrum(theta_rad,f,S_2D_cosm_f_theta_rad,[Hs,T0,mean_wave_direction_
 
 testWaveNumberSpectrum(f,theta_rad,S_2D_cosm_f_theta_rad,[Hs,T0,mean_wave_direction_degrees],showPlots)
 
-%% 
 rotation_angle_rad = ROTATION_ANGLE .* (pi/180);
 testRotation(f,theta_rad,S_2D_cosm_f_theta_rad,rotation_angle_rad, [Hs,T0,mean_wave_direction_degrees], showPlots)
 
@@ -46,7 +48,7 @@ testRotationAndWaveNumber(f,theta_rad,S_2D_cosm_f_theta_rad,rotation_angle_rad, 
 
 testInterpolationEftheta(f,theta_rad,S_2D_cosm_f_theta_rad,128,[Hs,T0,mean_wave_direction_degrees,gammaWaveValueInput],showPlots)
 
-%% SETUP Functions
+%% ==================== FUNCTIONS ====================
 
 function f = frequencyBins(numberOfFrequencyBins, Type)
     if(Type == "ERA5")
@@ -57,6 +59,7 @@ function f = frequencyBins(numberOfFrequencyBins, Type)
             for i=2:length(f)
                 f(i) = f(i-1)*1.1;
             end
+            f = f';
         else 
             % Need to preserve the statistical property regardless of the
             % size of the array. i.e. it still needs to mirror the case as
@@ -71,10 +74,12 @@ function f = frequencyBins(numberOfFrequencyBins, Type)
             for i=2:length(f)
                 f(i) = f(i-1)*a;
             end
+            f = f';
         end
     elseif (Type == "linear")
         % Generic array
-         f = linspace(0.01,1,numberOfFrequencyBins)';
+         f = linspace(0.01,1,numberOfFrequencyBins);
+         f = f';
     end
 end
 
@@ -84,12 +89,9 @@ function [theta_degrees, theta_rad] = directionBins(numberOfDirectionBins, mean_
         max_degree_bin = 352.5; % ERA5 maximum
         min_degree_bin = 7.5;
         
-        bin_spacing = (max_degree_bin-min_degree_bin)/numberOfDirectionBins; % Calculate the grid spacing
-        
-        
-        theta_degrees = linspace(mean_wave_direction_degrees-(bin_spacing*numberOfDirectionBins/2), ...
-                                            mean_wave_direction_degrees+(bin_spacing*numberOfDirectionBins/2) ...
-                                            ,numberOfDirectionBins);
+        theta_degrees = linspace(min_degree_bin,max_degree_bin,numberOfDirectionBins);
+        theta_degrees =theta_degrees';
+
         theta_rad = theta_degrees.* (pi/180);
 
     elseif (Type == "full circle")
@@ -135,9 +137,6 @@ function [E_kx_ky, Xq, Yq] = polar_surface(R, Theta, Z,sar_azimuth_resolution,sa
     % axis equal;
 end
 
-
-%% TEST Functions
-
 function test1DWaveSpectrum(f,S_1D_f,SimInputParams)
     %TEST1DWAVESPECTRUM Compare the parameters of the simulated 1D spectrum
     %to the input parameters
@@ -146,9 +145,9 @@ function test1DWaveSpectrum(f,S_1D_f,SimInputParams)
         % SimInputParams   = [Hs,T0]
 
     % Calc parameters of 1D to check that it matches the input
-    m0_1D = trapz(f,S_1D_f,1);
+    m0_1D = trapz(f,S_1D_f,2);
     Hs_derived = 4 * sqrt(m0_1D);
-    m1_1D = trapz(f,S_1D_f .* f.^1,1);
+    m1_1D = trapz(f,S_1D_f .* f.^1,2);
     Tm_derived = (m1_1D/m0_1D)^(-1); % [Holthuijsen Eq.5] 
 
     % Display Test results
@@ -207,12 +206,12 @@ function testWaveNumberSpectrum(f,theta_rad,S_2D,SimInputParams,showPlots)
     
     if showPlots
         figure('Position', [0, 0, 1200, 300]);
-        subplot(1,3,1); plotLibrary().waveSpectrum2D(1, abs(S_2D)', f, ...
+        subplot(1,3,1); plotLibrary().waveSpectrum2D(1, abs(S_2D), f, ...
             theta_rad.*(180/pi), 0.5, "Simulated 2D wave spectrum E(f,theta)");
         subplot(1,3,2); plotLibrary().waveNumberSpectrum(E_kx_ky, ...
             kx_matrix, ky_matrix, "Wave number spectrum, E(kx,ky)");
         subplot(1,3,3); 
-            plotLibrary().waveSpectrum2D(1, abs(wave_spectrum)', f, ...
+            plotLibrary().waveSpectrum2D(1, abs(wave_spectrum), f, ...
                 theta_rad.*(180/pi), 0.5, "Wave Spectrum after conversion " + ...
                 "E(Kx,ky) --> E(f,theta)");
    
@@ -220,19 +219,19 @@ function testWaveNumberSpectrum(f,theta_rad,S_2D,SimInputParams,showPlots)
         % Show that the wave spectrum, calculated from the wave number spectrum, looks like the original wave spectrum    
         figure('Position', [0, 0, 800, 300]);
             subplot(1,2,1);
-            contour(f,theta_rad.*(180/pi), S_2D');
+            contour(f,theta_rad.*(180/pi), S_2D);
                 xlabel("Frequency"); ylabel('Direction [degrees]');
                 title("Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"); 
             hold on;
-            contour(f,theta_rad.*(180/pi), wave_spectrum');
+            contour(f,theta_rad.*(180/pi), wave_spectrum);
                 xlabel("Frequency"); ylabel('Direction [degrees]');
                 title("Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"); c = colorbar();c.Label.String = '[m^2 s / rad]';
             legend("Original 2D Spectrum","Tested 2D Spectrum (E(k)-->E(f,theta))");
             c = colorbar();c.Label.String = '[m^2 s / rad]';
             subplot(1,2,2);
-                plotLibrary().waveSpectrum2D(1, abs(S_2D)', f, theta_rad.*(180/pi), 0.5, "Simulated 2D wave spectrum E(f,theta)");
+                plotLibrary().waveSpectrum2D(1, abs(S_2D), f, theta_rad.*(180/pi), 0.5, "Simulated 2D wave spectrum E(f,theta)");
                 hold on;
-                plotLibrary().waveSpectrum2D(1, abs(wave_spectrum)', f, theta_rad.*(180/pi), 0.5, ["Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"]);
+                plotLibrary().waveSpectrum2D(1, abs(wave_spectrum), f, theta_rad.*(180/pi), 0.5, ["Final 2-D Wave Spectrum, E(f,theta)", "calculated from E(k)"]);
                 hold off;
 
     end
@@ -270,12 +269,12 @@ function testRotation(f,theta_rad,S_2D,rotation_angle_rad, SimInputParams, showP
     %COMPARE spectra with angle adjustment
     if showPlots
         figure('Position', [0, 0, 1200, 300]);
-        subplot(1,3,1); plotLibrary().waveSpectrumAdjustedToSAR(S_2D', f, theta_rad.*(180/pi), 1, "Original 2-D Wave Spectrum, E(f,theta)");
-        subplot(1,3,2); plotLibrary().waveSpectrumAdjustedToSAR(S_2D', f, adjusted_theta_rad.*(180/pi), 1, "Adjusted to SAR scene geometry 2-D Wave Spectrum, E(f,theta)");
+        subplot(1,3,1); plotLibrary().waveSpectrumAdjustedToSAR(S_2D, f, theta_rad.*(180/pi), 1, "Original 2-D Wave Spectrum, E(f,theta)");
+        subplot(1,3,2); plotLibrary().waveSpectrumAdjustedToSAR(S_2D, f, adjusted_theta_rad.*(180/pi), 1, "Adjusted to SAR scene geometry 2-D Wave Spectrum, E(f,theta)");
         subplot(1,3,3);
-            plotLibrary().waveSpectrumAdjustedToSAR(S_2D', f, adjusted_theta_rad.*(180/pi), 1, "");
+            plotLibrary().waveSpectrumAdjustedToSAR(S_2D, f, adjusted_theta_rad.*(180/pi), 1, "");
             hold on;
-            plotLibrary().waveSpectrumAdjustedToSAR(S_2D', f, theta_rad.*(180/pi), 1, "Comparison of original vs adjusted spectrum");
+            plotLibrary().waveSpectrumAdjustedToSAR(S_2D, f, theta_rad.*(180/pi), 1, "Comparison of original vs adjusted spectrum");
     end
        
     
@@ -371,7 +370,7 @@ function testInterpolationEftheta(f,theta_rad,S_2D,interp_size,SimInputParams,sh
     [interp_theta_rad, interp_f] = meshgrid(ideal_interp_theta_rad,ideal_interp_f);
     
     % Interpolate Z values onto Cartesian grid
-    interp_S_2D = griddata(theta_rad,f, S_2D, interp_theta_rad, interp_f, 'cubic');
+    interp_S_2D = griddata(f,theta_rad, S_2D, interp_f,interp_theta_rad, 'cubic');
     interp_S_2D(isnan(interp_S_2D)) = 0;
     interp_S_2D(interp_S_2D<0) = 0;
     

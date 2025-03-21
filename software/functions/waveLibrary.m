@@ -144,7 +144,7 @@ function [Hs_m0,Tm,mean_wave_direction_degrees,total_variance_or_energy] = calcu
 % Significant wave height
 
     % Calculate the 0th order moments (m_n) [Eq.8]
-    m0 = trapz(direction_bins_rad, trapz(frequency_bins ,frequency_bins.^0 .* E_f_theta,2),1); %[Eq.8], dimension 2,3 = direc,freq
+    m0 = trapz(frequency_bins, trapz(direction_bins_rad ,frequency_bins.^0 .* E_f_theta,1),2); %[Eq.8], dimension 2,3 = direc,freq
 
     % Calculate the significant wave height (Hs) [Eq.4]
     Hs_m0 = 4*sqrt(m0);

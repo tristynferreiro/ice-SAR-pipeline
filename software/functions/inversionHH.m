@@ -45,6 +45,7 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
             P_best_eq63 = P_n_k;
             F_best_eq63 = F_n_k;
         end
+        % P_best_eq63 =0;F_best_eq63=0;
     
         %% [Eq 71 --> 75}
         Delta_F_k = F_first_guess - F_n_k; %[Eq.72 HH1991]

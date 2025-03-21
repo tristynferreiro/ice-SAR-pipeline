@@ -182,13 +182,12 @@ end
 function xi_sqr = meanSquareAzimuthalDisplacement(sar_beta, fv_r, Tv_k,F_k,kx,ky)%
     %[Eq.44, H&H 1991]
     % The integral term in Eq.44 is equivalent to fv(0) in Eq.43.
-    xi_sqr = (sar_beta).^2 .* abs(fv_r(:,1)); % [Eq.44, H&H 1991]
-
-    % xi_sqr_x = (sar_beta).^2 .* trapz(kx(1,:), F_k .* abs(Tv_k).^2,2); % IF there is an issue it should probably be ,1 not ,2
-    % xi_sqr_y = (sar_beta).^2 .* trapz(ky(:,1), F_k .* abs(Tv_k).^2,2);
-    % 
-    % xi_sqr = xi_sqr_x.* xi_sqr_y; % IF there is an issue it should probably be ,1 not ,2
-    % 
+    % xi_sqr = (sar_beta).^2 .* abs(fv_r(:,)); % [Eq.44, H&H 1991]
+    xi_sqr = (sar_beta).^2 .* trapz(ky(:,1), trapz(kx(1,:),abs(Tv_k).^2 .* F_k)); % [Eq.44, H&H 1991] 
+    xi_sqr = abs(xi_sqr); % SOLUTION TO -
+    % WHY IS THIS NEGATIVE SOMETIMES?????
+    % xi_sqr = xi_sqr/200;
+    
     % figure; plot(xi_sqr);
 end
 
