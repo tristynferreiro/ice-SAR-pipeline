@@ -11,7 +11,7 @@ g = 9.81;
 sarPlotsON = 0;
 plotERA5 = 0;
 plotsON = 0;
-plotSARSpecGen = 0;
+plotSARSpecGen = 1;
 inversionPlots = 1;
 
 nonlinearity_order = 3;
@@ -191,27 +191,22 @@ width_of_gaussian_lobe = 2; % width_of_gaussian_lobe: Controls the spread of the
 if plotsON
     figure('Position', [0, 0, 800, 300]);
     subplot(1,2,1); plotFunctions.generalSpectrumPlots(0,first_guess_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "Simulated SAR Spectrum, P^S_k");
-    subplot(1,2,2); plotFunctions().generalSpectrumPlots(0,observed_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "SAR Spectrum, P^S_{obs} with Butterworth cutoff and Gaussian Filter");
+    subplot(1,2,2); plotFunctions().generalSpectrumPlots(0,observed_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth,  ["SAR Spectrum, P^S_{obs}"," with Butterworth cutoff and Gaussian Filter"]);
 end
 
 %% ==================== H&H: Step Zero ====================
 transect_number = 1; % This will mainly be used when looping through all transects in the ice part of the pipeline
-
-F_era5_k = first_guess_wave_number_spectrum;
-P_era5_k = first_guess_sar_spectrum;
-
+applyStepZero = 1;
 if  applyStepZero
-    disp('*==== Start Step Zero ====*');
-    kx = first_guess_kx_range(1,:); % This is required for integration
-    ky = first_guess_ky_azimuth(:,1); % This is required for integration
+    kx = first_guess_kx_range; % This is required for integration
+    ky = first_guess_ky_azimuth; % This is required for integration
+ 
 
     P_obs = observed_sar_spectrum;
-    % kx = first_guess_kx_range;
-    % ky = first_guess_ky_azimuth;
+    
     cosmo = sentinel;
     plotsON = 0;
-    % [J_step0, S_new, P_new, energy_scale, new_kx_0,new_ky_0,rot_angle, mag_scale, TS_k, Tv_k, sar_beta,xi_sqr] = inversionStep0(nonlinearity_order, 0,transect_number, observed_sar_spectrum, first_guess_wave_number_spectrum,first_guess_kx_range,first_guess_ky_azimuth,first_guess_omega,first_guess_k,sar_sub_transect_size, sentinel, handh);
-    % 
+
     % START OF ALGO
     first_iteration_check = true;
     
@@ -221,29 +216,38 @@ if  applyStepZero
     % anello  = 1 - 1./(1+(k0./modk).^7); % MIGHT NEED TO ADJUST POWER (5 in this case) FOR DIFFERENT CASES
     anello = 1;
     
-    energy_scales = 0.1:1:10;
-    wave_number_mag_scales = 0.1:1:10;
-    rotation_angles = -20:5:20;
-    S_tmp = first_guess_sar_spectrum;
-    J_step0 = zeros(length(energy_scales), length(wave_number_mag_scales), length(rotation_angles));
+    rotation_angles = -10:1:10;
+    wave_number_mag_scales = 0.9:0.1:1.1;
+    energy_scales = 0.5:0.5:10;
+    % rotation_angles = 0;
+    % wave_number_mag_scales = 1;
+    % energy_scales =1;
+
+    J_step0 = zeros(length(rotation_angles), length(wave_number_mag_scales), length(energy_scales));
+    
+    % First interpolate the wave spectrum to a new wave number grid that is
+    % scaled to the max possible value as per the wave_number_mag_scales
+    % array.
+    % max_scale = max(wave_number_mag_scales); 
+
+    [S_tmp_0, kx_tmp,ky_tmp] = wavenumspecStepzero(plotsON, era5_d2fd, adjusted_direction_bins_degrees, era5_freq_bins, interp_size, sar_dx_range);% Convert to Cartesian (kx, ky) coordinates
+   
+    % max_scale = 2;
+    % kx_tmp=linspace(-max_scale*max(kx(:)),max_scale*max(kx(:)),2*128) .* ones(2*128);
+    % ky_tmp=linspace(-max_scale*max(ky(:)),max_scale*max(ky(:)),128*2)' .* ones(128*2);
+    % 
+    % Reset the temporary spectrum
+    % S_tmp_0 = interp2(kx,ky,first_guess_wave_number_spectrum,kx_tmp,ky_tmp); % Reset S_tmp to original spectrum
+    % S_tmp_0(isnan(S_tmp_0))=0;      
     
     for i_rot = 1:length(rotation_angles)
-        S_tmp = first_guess_sar_spectrum; % Reset S_tmp to original spectrum
+
         % [Eq.77 HH1991]
-        % theta = adjusted_direction_bins_degrees + rotation_angles(i_rot); % The imrotate performs counterclockwise rotation.
-        
+        % theta = adjusted_direction_bins_degrees + rotation_angles(i_rot);
+        % [S_tmp, rot_kx,rot_ky] = wavenumspec(plotsON, era5_d2fd, theta, era5_freq_bins, interp_size, sar_dx_range);
+
         for i_mag = 1:length(wave_number_mag_scales)
-            
-            % [Eq.78 HH1991]
-            B = wave_number_mag_scales(i_mag);
-            new_kx = B .* (kx .* cosd(rotation_angles(i_rot)) - ky .* sind(rotation_angles(i_rot)));
-            new_ky = B .* (kx .* sind(rotation_angles(i_rot)) + ky .* cosd(rotation_angles(i_rot)));
-            new_k = sqrt(new_kx.^2 + new_ky.^2);
-            gravity = 9.81;
-            new_omega = sqrt(gravity .* new_k);
-            
-            % S_tmp = griddata(kx,ky,S_tmp,new_kx,new_ky,"natural");
-            
+         
             
             for i_energy = 1:length(energy_scales)
                 % METHODS THAT DID NOT WORK
@@ -270,45 +274,62 @@ if  applyStepZero
                 % theta = -1 * rotation_angles(i_rot); % The imrotate performs counterclockwise rotation.
                 % S_tmp = imrotate(first_guess_wave_number_spectrum,theta,"bilinear","crop");
                 
+                % Reset the wave number spec
+                S_tmp = S_tmp_0;
+
+                % [Eq.78 HH1991]
+                B = wave_number_mag_scales(i_mag);
+                new_kx = B .* (kx_tmp .* cosd(rotation_angles(i_rot)) - ky_tmp .* sind(rotation_angles(i_rot)));
+                new_ky = B .* (kx_tmp .* sind(rotation_angles(i_rot)) + ky_tmp .* cosd(rotation_angles(i_rot)));
                 
-                
-                % Scale the energy
-                % [S_tmp, kx, ky] = wavenumspec(plotsON, era5_d2fd, theta, era5_freq_bins, interp_size, sar_dx_range);
+                % [Eq.78 HH1991]
+                A = energy_scales(i_energy);
                 S_tmp = energy_scales(i_energy) .* S_tmp;
+                
+                F = scatteredInterpolant(new_kx(:), new_ky(:), S_tmp(:), 'linear', 'linear');
+                S_tmp_n = F(kx, ky);
+                S_tmp_n(isnan(S_tmp_n)) = 0;
                
                 % Calculate the new SAR spectrum
-                [P_tmp, TS_k, Tv_k, sar_beta, xi_sqr] = handh.generateSARSpectrumFromWaveNumberSpectrum(sentinel, plotsON, transect_number, nonlinearity_order, sar_sub_transect_size, new_kx, new_ky, new_omega, new_k, S_tmp); % [Eq.65 HH1991]
-                
-                kx_new = new_kx(1,:);
-                ky_new = new_ky(:,1);
-    
-                J_step0(i_rot, i_mag, i_energy) = trapz(kx_new, trapz(ky_new, (P_tmp - P_obs).^2 .* anello,1),2) ./ sqrt(trapz(kx_new, trapz(ky_new, (P_obs).^2 .* anello,1),2)) ./ sqrt(trapz(kx_new, trapz(ky_new, (P_tmp).^2  .* anello,1),2));
-                
+                plotsON = 0;
+                [P_tmp, TS_k, Tv_k, sar_beta, xi_sqr] = handh.generateSARSpectrumFromWaveNumberSpectrum(sentinel, plotsON, transect_number, nonlinearity_order, sar_sub_transect_size, kx, ky, first_guess_omega, first_guess_k, S_tmp_n); % [Eq.65 HH1991]
+                P_tmp(isnan(P_tmp)) =0;
+
+                kx_vector = kx(1,:);
+                ky_vector = ky(:,1);
+                % J_step0(i_rot, i_mag, i_energy) = trapz(kx_vector, trapz(ky_vector, (P_tmp - P_obs).^2 .* anello,1),2) ./ sqrt(trapz(kx_vector, trapz(ky_vector, (P_obs).^2 .* anello,1),2)) ./ sqrt(trapz(kx_vector, trapz(ky_vector, (P_tmp).^2  .* anello,1),2));
+                % 
+                B = 0.01 * max(first_guess_wave_number_spectrum(:))^2; % Below [Eq.76 HH1991]
+                mu = 0.1 * max(P_obs(:))^2; % [Eq.76 HH1991]
+                term1_63 = (P_tmp - P_obs).^2 .* P_obs;
+                term1_63(isnan(term1_63))=0;
+                term2_63 = mu .* ( (S_tmp_n - first_guess_wave_number_spectrum) ./ (B + first_guess_wave_number_spectrum) ).^2;
+                term2_63(isnan(term2_63))=0;
+                J_step0(i_rot, i_mag, i_energy) = trapz( kx_vector,trapz(ky_vector,term1_63,1),2) + trapz( kx_vector,trapz(ky_vector,term2_63,1),2);% dimensions = Y x X = 1 x 2;
+      
                 if first_iteration_check
                     Jmax_step0 = J_step0(i_rot, i_mag, i_energy);
                     first_iteration_check = false;
                 end
                     
     
-                if J_step0(i_rot, i_mag, i_energy) < Jmax_step0
+                if J_step0(i_rot, i_mag, i_energy) <= Jmax_step0
                     disp("iteration "+i_rot +"," + i_mag+","+i_energy)
                     Jmax_step0    = J_step0(i_rot, i_mag, i_energy);
-                    F_new      = S_tmp;
+                    F_new      = S_tmp_n;
                     P_new      = P_tmp;
                     energy_0     = energy_scales(i_energy);
                     mag_0 = wave_number_mag_scales(i_mag);
                     rot_angle_0  = rotation_angles(i_rot);
                     energy_0_i = i_energy;
-                    new_kx_0 = new_kx;
-                    new_ky_0 = new_ky;
-                    new_k_0 = new_k;
-                    new_omega_0 = new_omega;
                     TS_k_0 = TS_k;
                     Tv_k_0 = Tv_k; 
                     sar_beta_0 = sar_beta;
                     xi_sqr_0 = xi_sqr;
                 end
+            
             end
+
         end
     end
     
@@ -322,53 +343,55 @@ if  applyStepZero
     xi_sqr = xi_sqr_0;
 
     % Plot the outputs
-    figure('Position', [0, 0, 1200, 600]);
+    figure('Position', [0, 0, 1600, 800]);
         subplot(2,4,1); plotFunctions.generalSpectrumPlots(0,observed_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "Observed SAR spectrum");
         subplot(2,4,2); plotFunctions.generalSpectrumPlots(0,first_guess_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "First guess SAR spectrum");
-        subplot(2,4,3); plotFunctions.generalSpectrumPlots(0,P_new, new_kx_0, new_ky_0, "New SAR Spectrum");
-        subplot(2,4,4); 
-            clear temp; temp(:,:) = J_step0(:,1,:); surf(temp); view(2);
-            title("Minimisation Values"); ylabel("Wave Number Scaling Factor"); xlabel("Rotation angle (degrees)"); 
-            c = colorbar(); c.Label.String = 'Minimisation magnitude';
+        subplot(2,4,3); plotFunctions.generalSpectrumPlots(0,P_new, kx, ky, "P(k)");
+        subplot(2,4,4);
+        % ix
+        % countJ=J(i_rot,)
+            % pcolor(J_step0(:));
+            % clear temp; temp(:,:) = J_step0(:,1,:); surf(temp); view(2);
+            % title("Minimisation Values"); ylabel("Wave Number Scaling Factor"); xlabel("Rotation angle (degrees)"); 
+            % c = colorbar(); c.Label.String = 'Minimisation magnitude';
         subplot(2,4,6); plotFunctions.generalSpectrumPlots(0,first_guess_wave_number_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "First guess wave number spectrum");
-        subplot(2,4,7); plotFunctions.generalSpectrumPlots(0,S_new, new_kx_0, new_ky_0, "New wave number Spectrum");
+        subplot(2,4,7); plotFunctions.generalSpectrumPlots(0,S_new, kx, ky, "E(k)");
     
     % Update the variables to the new values
-    % F_era5_k = S_new;
-    % first_guess_kx_range = new_kx_0;
-    % first_guess_ky_azimuth = new_ky_0 ;
-    % first_guess_k = sqrt(first_guess_ky_azimuth.^2 +first_guess_kx_range.^2);
+    first_guess_wave_number_spectrum = S_new;
+    first_guess_kx_range = kx;
+    first_guess_ky_azimuth = ky;
     % first_guess_omega = sqrt(9.81 * first_guess_k);
 end
 %% ==================== H&H: Inversion ====================
 disp('*==== Start Inversion ====*');
-[J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_69,P_best_eq69,F_best_eq69] = inversionHH(inversion_iterations, nonlinearity_order, sentinel, handh, 0, observed_sar_spectrum, F_era5_k, transect_number, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k );
+[J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_69,P_best_eq69,F_best_eq69] = inversionHH(inversion_iterations, nonlinearity_order, sentinel, handh, 0, observed_sar_spectrum, first_guess_wave_number_spectrum, transect_number, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k );
 %TO DO: ADD MARKER TO SHOW WHICH ITERATION WAS CHOSEN
 if inversionPlots
     figure('Position', [0, 0, 1200, 900]);
-        subplot(3,3,1); plotFunctions.generalSpectrumPlots(0,F_best_eq62, first_guess_kx_range, first_guess_ky_azimuth, "Final Wave Spectrum, F_k: From Eq.62 Inversion");
-        subplot(3,3,2); plotFunctions.generalSpectrumPlots(0,P_best_eq62, first_guess_kx_range, first_guess_ky_azimuth, "Final SAR Spectrum, P^S_{k}: From Eq.62 Inversion");
-        subplot(3,3,3); 
-            plot(J_eq_62); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
-        subplot(3,3,4); plotFunctions.generalSpectrumPlots(0,F_best_eq63, first_guess_kx_range, first_guess_ky_azimuth, "Final Wave Spectrum, F_k: From Eq.63 Inversion");
-        subplot(3,3,5); plotFunctions.generalSpectrumPlots(0,P_best_eq63, first_guess_kx_range, first_guess_ky_azimuth, "Final SAR Spectrum, P^S_{k}: From Eq.63 Inversion");
-        subplot(3,3,6);
-            plot(J_eq_63); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
-        subplot(3,3,7); plotFunctions.generalSpectrumPlots(0,F_best_eq69, first_guess_kx_range, first_guess_ky_azimuth, "Final Wave Spectrum, F_k: From Eq.69 Inversion");    
-        subplot(3,3,8); plotFunctions.generalSpectrumPlots(0,P_best_eq69, first_guess_kx_range, first_guess_ky_azimuth, "Final SAR Spectrum, P^S_{k}: From Eq.69 Inversion");    
-        subplot(3,3,9); 
-            plot(J_eq_69); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
+    subplot(3,3,1); plotFunctions.generalSpectrumPlots(0,F_best_eq62, first_guess_kx_range, first_guess_ky_azimuth, ["Final Wave Spectrum, F_k","From Eq.62 Inversion"]);
+    subplot(3,3,2); plotFunctions.generalSpectrumPlots(0,P_best_eq62, first_guess_kx_range, first_guess_ky_azimuth, ["Final SAR Spectrum, P^S_{k}"," From Eq.62 Inversion"]);
+    subplot(3,3,3); 
+        plot(J_eq_62); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
+    subplot(3,3,4); plotFunctions.generalSpectrumPlots(0,F_best_eq63, first_guess_kx_range, first_guess_ky_azimuth, ["Final Wave Spectrum, F_k"," From Eq.63 Inversion"]);
+    subplot(3,3,5); plotFunctions.generalSpectrumPlots(0,P_best_eq63, first_guess_kx_range, first_guess_ky_azimuth, ["Final SAR Spectrum, P^S_{k}"," From Eq.63 Inversion"]);
+    subplot(3,3,6);
+        plot(J_eq_63); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
+    subplot(3,3,7); plotFunctions.generalSpectrumPlots(0,F_best_eq69, first_guess_kx_range, first_guess_ky_azimuth, ["Final Wave Spectrum, F_k"," From Eq.69 Inversion"]);    
+    subplot(3,3,8); plotFunctions.generalSpectrumPlots(0,P_best_eq69, first_guess_kx_range, first_guess_ky_azimuth, ["Final SAR Spectrum, P^S_{k}","From Eq.69 Inversion"]);    
+    subplot(3,3,9); 
+        plot(J_eq_69); xticks((1:1:inversion_iterations)); xlabel("Number of iterations");
 end
 
-chosen_final_spectrum = F_best_eq63;
-chosen_final_SAR_spectrum = P_best_eq63;
+chosen_final_spectrum = F_best_eq62;
+chosen_final_SAR_spectrum = P_best_eq62;
 
 %% ==================== RESULTS ====================
 disp('*==== OUTPUTS ====*');
 figure('Position', [100, 100, 1200, 300]);
     subplot(1,4,1); plotFunctions.generalSpectrumPlots(0,first_guess_wave_number_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "First guess wave number spectrum");
-    subplot(1,4,2); plotFunctions.generalSpectrumPlots(0,chosen_final_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "Final Wave Spectrum, F_k: From Eq.63 Inversion");
-    subplot(1,4,3); plotFunctions.generalSpectrumPlots(0,chosen_final_SAR_spectrum, first_guess_kx_range, first_guess_ky_azimuth,"Final SAR Spectrum: From Eq.63 Inversion");
+    subplot(1,4,2); plotFunctions.generalSpectrumPlots(0,chosen_final_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "Final Wave Spectrum, F_k: From Eq.62 Inversion");
+    subplot(1,4,3); plotFunctions.generalSpectrumPlots(0,chosen_final_SAR_spectrum, first_guess_kx_range, first_guess_ky_azimuth,"Final SAR Spectrum: From Eq.62 Inversion");
     subplot(1,4,4); plotFunctions.generalSpectrumPlots(0,observed_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth, "Observed SAR spectrum");
 
 % Convert E(k) - E(k,theta)
@@ -459,6 +482,16 @@ disp('*==== Comparison ====*');
 disp(['Final Hs: ',  num2str(final_Hs_derived)]);
 disp(['Final Tm: ',  num2str(final_Tm_derived)]);
 disp(['Final Dir: ',  num2str(final_direction_derived)]);
+disp(['Final Dir - SAR: ',  num2str(final_direction_derived-abs(sar_azimuth_to_north_angle))]);
+
+wavelength_Tm_final = ((final_Tm_derived)^2 * 9.81)/(2*pi);
+disp(['Final wavelength from Tm: ', num2str(wavelength_Tm_final)])
+
+[~,max_index] = max(S_1Dr);
+final_Tp = 1/f_r(max_index);
+disp(['Final Tp: ', num2str(final_Tp)]);
+wavelength_Tp_final = ((final_Tp)^2 * 9.81)/(2*pi);
+disp(['Final wavelength from Tp: ', num2str(wavelength_Tp_final)]);
 
 disp('--------------------------------------');
 disp("ERA5 date"); disp(era5_datetime)
@@ -469,6 +502,7 @@ disp(['ERA5 lat: ',  num2str(era5_lat)]);
 disp(['Inital ERA5 Hs: ', num2str(era5_Hs_derived)]);
 disp(['Inital ERA5 Tm: ', num2str(era5_Tm_derived)]);
 disp(['Inital ERA5 Dir: ', num2str(era5_direction_derived)]);
+
 
 disp('--------------------------------------');
 filepath_single = "/Users/tris/Documents/MSc/Data/Cape Point/CapePoint_ERA5-single-2Dws_20241014.nc";
@@ -484,7 +518,9 @@ disp(['Singles ERA5 mdww: ', num2str(era5_mdww)]);
 disp(['Singles ERA5 mpww: ', num2str(era5_mpww)]);
 disp(['Singles ERA5 shww: ', num2str(era5_shww)]);
 
+wavelength_mww = ((era5_mpww)^2 * 9.81)/(2*pi);
 
+disp(['Singles ERA5 wavelength from mpww: ', num2str(wavelength_mww)])
 %% ==================== FUNCTIONS ====================
 function [S_kxky, Kx,Ky] = wavenumspec(plotsON, wavespec, dirBins, f_bins, interp_size, sar_dx_range)
     f = f_bins;
@@ -528,6 +564,61 @@ function [S_kxky, Kx,Ky] = wavenumspec(plotsON, wavespec, dirBins, f_bins, inter
     [Kx, Ky] = meshgrid(kx,ky);
     F = scatteredInterpolant(x, y, z, 'linear', 'none');
     S_kxky=F(Kx, Ky);
+    
+    % if plotsON
+    %     figure;
+    %     contour(Kx, Ky, S_kxky);
+    %     xlim([min(Kx(:)) max(Kx(:))]);
+    %     ylim([min(Kx(:)) max(Kx(:))]);
+    %     title('Wave Number Spectrum on SAR grid');
+    %     colorbar;
+    % end
+    
+    
+end
+
+function [S_tmp0, Kx_tmp,Ky_tmp] = wavenumspecStepzero(plotsON, wavespectrum, dirBins, f_bins, interp_size, sar_dx_range)
+    f = f_bins;
+    n = interp_size;
+    dx = sar_dx_range;
+    g = 9.81;
+    S_2D = wavespectrum;
+    numDirBins = length(dirBins);
+    
+    % Compute wavenumber (k) using deep-water dispersion relation
+    k = (2 * pi * f).^2 / g;
+    theta = deg2rad(dirBins);  % Convert degrees to radians
+    
+    % TRANSFORM_SPECTRUM Converts a wave spectrum from frequency (f) to wavenumber (k)
+    % Compute the Jacobian of the transformation df/dk:
+    df_dk = 1 ./ (4 * pi) .* sqrt(g ./ k);
+    % S(k, theta) = S(f, theta) * |df/dk|
+    S_k_theta = S_2D .* df_dk;
+    
+    Hs_m0 = 4 * sqrt(trapz(k, trapz(theta, S_k_theta', 2), 1));
+    [Hs_derived,Tm_derived,direction_derived,~] = ...
+            waveLibrary().calculateSpectrumCharacteristics(theta,k,S_k_theta);
+    
+    disp(['In k theta space Hs: ', num2str(Hs_m0)]);
+    % Plot transformed spectrum
+    if plotsON
+        figure;
+        plotLibrary().waveSpectrum2D(1, abs(S_k_theta), k, theta * 180 / pi, 0.3, "Wave Spectrum in (k, theta)");
+    end
+
+    % Convert to Cartesian (kx, ky) coordinates
+    [kk,tt] = meshgrid(k,theta);
+    y = kk(:) .* cos(tt(:));
+    x =  kk(:) .* sin(tt(:));
+    z = S_k_theta(:);
+    % Define Cartesian grid
+    dk = 2 * pi / (n * dx);
+    kx = 10*linspace(-pi/dx,pi/dx,n);
+    kx = kx(kx~=0);
+    ky = kx;
+    [Kx_tmp, Ky_tmp] = meshgrid(kx,ky);
+    F = scatteredInterpolant(x, y, z, 'linear', 'none');
+    S_tmp0=F(Kx_tmp, Ky_tmp);
     
     % if plotsON
     %     figure;

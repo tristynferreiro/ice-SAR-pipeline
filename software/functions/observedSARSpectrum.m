@@ -22,8 +22,8 @@ function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, s
         end
     end
 
-    % sar_sub_transect = (sar_azimuth_resolution / (2 * pi * sar_sub_transect_size))^2 * sar_sub_transect; 
-    sar_sub_transect = sar_sub_transect ./ (dimension)^2;
+    sar_sub_transect = (sar_azimuth_resolution / (2 * pi * sar_sub_transect_size))^2 * sar_sub_transect; 
+    % sar_sub_transect = sar_sub_transect ./ (dimension)^2;
     
     % figure; plotLibrary().generalSpectrumPlots(0,sar_sub_transect, kx, ky, "After Mean Filter");
 

@@ -183,7 +183,7 @@ function xi_sqr = meanSquareAzimuthalDisplacement(sar_beta, fv_r, Tv_k,F_k,kx,ky
     %[Eq.44, H&H 1991]
     % The integral term in Eq.44 is equivalent to fv(0) in Eq.43.
     % xi_sqr = (sar_beta).^2 .* abs(fv_r(:,)); % [Eq.44, H&H 1991]
-    xi_sqr = (sar_beta).^2 .* trapz(ky(:,1), trapz(kx(1,:),abs(Tv_k).^2 .* F_k)); % [Eq.44, H&H 1991] 
+    xi_sqr = (sar_beta).^2 .* trapz(ky(:,1), trapz(kx(1,:), abs(Tv_k).^2 .* F_k, 2) ); % [Eq.44, H&H 1991] 
     xi_sqr = abs(xi_sqr); % SOLUTION TO -
     % WHY IS THIS NEGATIVE SOMETIMES?????
     % xi_sqr = xi_sqr/200;
@@ -199,6 +199,8 @@ function [PS_ql_k,azimuthal_cutoff_factor] = sarImageVarianceSpectrumQuasilinear
 
     % Apply filter to filter out high frequencies
     azimuthal_cutoff_factor = exp(-1 .* k_azimuth.^2 .* xi_sqr);
+    % figure;
+    %     plot(azimuthal_cutoff_factor(:,1)); title("Azimuthal filter");
     PS_ql_k = azimuthal_cutoff_factor .* PS_1; % [Eq.56, H&H 1991]
 end
 
@@ -283,21 +285,21 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
             figure('Position', [100, 100, 1600, 300]);
                 title("Nonlinear order = %d",nonlinearity);
             subplot(1,4,1); 
-                plotLibrary().waveNumberSpectrum(PS_2n, k_range, k_azimuth, ("Spectral Expansion Term 1, P^S_{2n} & n = " + nonlinearity));
+                plotLibrary().waveNumberSpectrum(PS_2n, k_range, k_azimuth, (["Spectral Expansion Term 1, P^S_{2n} ","n = " + nonlinearity]));
                 % plotLibrary().waveNumberSpectrum(abs(PS_2n), k_range, k_azimuth, ("Spectral Expansion Term 1, P^S_{2n} & n = " + nonlinearity));
                 % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
             subplot(1,4,2);
-                plotLibrary().waveNumberSpectrum(PS_2n_minus_1, k_range, k_azimuth, ("Spectral Expansion Term 2, P^S_{2n-1} & n = " + nonlinearity));
+                plotLibrary().waveNumberSpectrum(PS_2n_minus_1, k_range, k_azimuth, (["Spectral Expansion Term 2, P^S_{2n-1}","n = " + nonlinearity]));
                 % plotLibrary().waveNumberSpectrum(abs(PS_2n_minus_1), k_range, k_azimuth, ("Spectral Expansion Term 2, P^S_{2n-1} & n = " + nonlinearity));
                 % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
             
             subplot(1,4,3);
-                plotLibrary().waveNumberSpectrum(PS_2n_minus_2, k_range, k_azimuth, ("Spectral Expansion Term 3, P^S_{2n-2} & n = " + nonlinearity));
+                plotLibrary().waveNumberSpectrum(PS_2n_minus_2, k_range, k_azimuth, (["Spectral Expansion Term 3, P^S_{2n-2}","n = " + nonlinearity]));
                 % plotLibrary().waveNumberSpectrum(abs(PS_2n_minus_2), k_range, k_azimuth, ("Spectral Expansion Term 3, P^S_{2n-2} & n = " + nonlinearity));
                 % xlim([-0.08 0.08]); ylim([-0.08 0.08]);
                 
             subplot(1,4,4);
-                plotLibrary().waveNumberSpectrum(sum, k_range, k_azimuth, ("Sum of the nonlinear terms, P^S_{sum of terms} & n = " + nonlinearity));
+                plotLibrary().waveNumberSpectrum(sum, k_range, k_azimuth, (["Sum of the nonlinear terms, P^S_{sum of terms}","n = " + nonlinearity]));
                 % plotLibrary().waveNumberSpectrum(abs(sum), k_range, k_azimuth, ("Sum of the nonlinear terms, P^S_{sum of terms} & n = " + nonlinearity));
         end
 
@@ -306,16 +308,16 @@ function PS_nl = sarImageVarianceSpectrumNonlinearMappingTransform(plotsON, nonl
     end
     
     % Non-linear spectrum calculation [Eq.50, H&H 1991]
-    ps_nl_only = ps_k .* exp(-xi_sqr .* k_azimuth.^2) .* (sar_dazimuth / (sar_sub_transect_size*2*pi))^2; % [Eq.45, H&H 1991]; % This factor is for converting from 2pi to spatial domain (dx / (n* 2*pi))^2 it is the FFT and dk term in hHH (SEE NOTES BELOW)
+    ps_nl_only = ps_k .* exp(-1 .* xi_sqr .* k_azimuth.^2) .* (sar_dazimuth / (sar_sub_transect_size*2*pi))^2; % [Eq.45, H&H 1991]; % This factor is for converting from 2pi to spatial domain (dx / (n* 2*pi))^2 it is the FFT and dk term in hHH (SEE NOTES BELOW)
     PS_nl = abs(PS_ql + ps_nl_only);
 
     if plotsON
         figure('Position', [100, 100, 1200, 300]);
-        subplot(1,3,1); plotLibrary().waveNumberSpectrum(ps_nl_only, k_range, k_azimuth, ("Nonlinear Spectral Terms & nonlinearity order = "+nonlinearity));
+        subplot(1,3,1); plotLibrary().waveNumberSpectrum(ps_nl_only, k_range, k_azimuth, (["Nonlinear Spectral Terms","nonlinearity order = "+nonlinearity]));
         
-        subplot(1,3,2); plotLibrary().waveNumberSpectrum(PS_ql, k_range, k_azimuth, ("Quasilinear Spectrum, P^S_{ql} & nonlinearity order = "+nonlinearity));
+        subplot(1,3,2); plotLibrary().waveNumberSpectrum(PS_ql, k_range, k_azimuth, (["Quasilinear Spectrum, P^S_{ql}","nonlinearity order = "+nonlinearity]));
        
-        subplot(1,3,3); plotLibrary().waveNumberSpectrum(PS_nl, k_range, k_azimuth, ("Generated SAR Spectrum, P^S_{k} & nonlinearity order = "+nonlinearity));
+        subplot(1,3,3); plotLibrary().waveNumberSpectrum(PS_nl, k_range, k_azimuth, (["Generated SAR Spectrum, P^S_{k}","nonlinearity order = "+nonlinearity]));
     end
 end
 
@@ -468,6 +470,9 @@ function [PS_k,TS_k, Tv_k, sar_beta,xi_sqr] = generateSARSpectrumFromWaveNumberS
 
      % Plots: Quasilinear SAR Spectrum Development
     if plotsON
+        figure;
+            plot(first_guess_ky_azimuth,azimuthal_cutoff_factor(:,1)); title("Azimuthal cutoff filter"); 
+            xlabel("k_{azimuth}");
         figure('Position', [0, 0, 1200, 300]);
         subplot(1,3,1); plotLibrary().generalSpectrumPlots(0,fv_r, first_guess_kx_range, first_guess_ky_azimuth, "Orbital Velocity Covariance Function, f^v(r)");
 

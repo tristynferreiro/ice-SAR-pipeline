@@ -200,14 +200,15 @@ classdef Sentinel1A
             lon_grid = ncread(obj.Filepath,'lon')';
         end
 
-        function [slant_range_to_transect_center] = getSlantRange(obj,sar_transect_lat_indices,sar_transect_lon_indices)
+        function [slant_range_mean] = getSlantRange(obj,sar_transect_lat_indices,sar_transect_lon_indices)
+            % In m
             c = physconst('LightSpeed');
-            RTT = c /2;
-            slant_range_time = (ncread(obj.Filepath,"slant_range_t") .* 10e-9)'; % need to transpose so that [row,column] = [lat,long]
+            RTT_factor = c / 2;
+            slant_range_time = (ncread(obj.Filepath,"slant_range_t") .* 1e-9 )'; %[ns] in Sentinel 1A (look at original product Pixel information)
             slant_range_time = slant_range_time(sar_transect_lat_indices,sar_transect_lon_indices); % center of the transect
             % sar_slant_range = sar_slant_range_time(sar_transect_size/2,sar_transect_size/2) .* RTT;
             slant_range_time(isnan(slant_range_time)) = 0;
-            slant_range_to_transect_center = mean(slant_range_time(:)) .* RTT;
+            slant_range_mean = mean(slant_range_time(:)) .* RTT_factor; %[m]
             % slant_range_to_transect_center = slant_range_time .* RTT;
         end
 
