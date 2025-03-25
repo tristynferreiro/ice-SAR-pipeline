@@ -25,7 +25,11 @@ function [sar_transect,sar_transect_lonGrid,sar_transect_latGrid, sar_transect_c
 
     lat_indices_1 = sar_transect_lat_center_index-sar_large_transect_size/2: sar_transect_lat_center_index+sar_large_transect_size/2-1;
     lon_indices = sar_transect_lon_center_index-sar_large_transect_size/2: sar_transect_lon_center_index+sar_large_transect_size/2-1;
-
+    if(max(lon_indices)>size(sar_lonGrid,2))
+        shift = (max(lon_indices)-size(sar_lonGrid,2));
+        lon_indices = lon_indices - (shift);
+        sar_transect_center_longitude = sar_lonGrid(sar_transect_lat_center_index, sar_transect_lon_center_index-shift);
+    end
     sar_transect_lonGrid = sar_lonGrid(lat_indices_1,lon_indices);
 
 

@@ -1,4 +1,4 @@
-function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, sar_sub_transect_size, sar_azimuth_resolution, k, size_of_filter_window, width_of_gaussian_lobe, cutoff,first_guess_sar_spectrum, kx, ky)
+function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, sar_sub_transect_size, sar_azimuth_resolution, k, size_of_filter_window, width_of_gaussian_lobe, cutoff_wavelength,first_guess_sar_spectrum, kx, ky)
     %UNTITLED3 Summary of this function goes here
     %   Detailed explanation goes here
     
@@ -27,12 +27,12 @@ function [sar_spectrum] = observedSARSpectrum(sar_transect, sar_transect_size, s
     
     % figure; plotLibrary().generalSpectrumPlots(0,sar_sub_transect, kx, ky, "After Mean Filter");
 
-    if (cutoff ~= -1)
+    if (cutoff_wavelength ~= -1)
         % Butterworth high-pass filter: however, due to the symmetry of k in
         % both positive and negative directions, the filter appears as a
         % bandstop
         k(k == 0) = 1e-7; % to avoid division by zero
-        k0 = (2 * pi) / cutoff; % define the cutoff wavenumber
+        k0 = (2 * pi) / cutoff_wavelength; % define the cutoff wavenumber
 
         % [temp1, temp2] = find(first_guess_sar_spectrum==max(first_guess_sar_spectrum(:)));
         % k0 = k(temp1(1),temp2(1)) / 2;

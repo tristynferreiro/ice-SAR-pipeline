@@ -20,15 +20,20 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
         end
         
         [P_n_k,TS_k, Tv_k, sar_beta,xi_sqr] = handh.generateSARSpectrumFromWaveNumberSpectrum(satelliteObj, plotsON, transect_number, nonlinearity_order, sar_sub_transect_size, first_guess_kx_range, first_guess_ky_azimuth, first_guess_omega, first_guess_k, F_n_k); % [Eq.65 HH1991]
-    
+        P_n_k(isnan(P_n_k))=0;
+
         % [Eq.62 HH1991]
         term1_62 = (P_n_k - P_obs).^2;
+        % term1_62(isnan(term1_62)) = 0;
         term2_62 = mu .* ( (F_n_k - F_first_guess) ./ (B + F_first_guess) ).^2;
+        % term2_62(isnan(term2_62)) = 0;
         J_eq_62(n) = trapz(kx,trapz(ky,term1_62,1),2) + trapz(kx,trapz(ky,term2_62,1),2);% dimensions = Y x X = 1 x 2;
         
         % [Eq.63 HH1991]
         term1_63 = (P_n_k - P_obs).^2 .* P_obs;
+        % term1_63(isnan(term1_63)) = 0;
         term2_63 = mu .* ( (F_n_k - F_first_guess) ./ (B + F_first_guess) ).^2;
+        % term2_63(isnan(term2_63)) = 0;
         J_eq_63(n) =  trapz(kx,trapz(ky,term1_63,1),2) + trapz(kx,trapz(ky,term2_63,1),2);% dimensions = Y x X = 1 x 2;
       
         %% Store the best fit spectra
@@ -69,7 +74,9 @@ function [J_eq_62,P_best_eq62,F_best_eq62,J_eq_63,P_best_eq63,F_best_eq63,J_eq_6
         
         % [Eq.69 HH1991]
         intergral_term1 = (delta_P_n - (P_obs - P_n_k)).^2;
+        intergral_term1(isnan(intergral_term1))=0;
         intergral_term2 = mu .* (delta_F_n - (F_first_guess - F_n_k)).^2;
+        intergral_term2(isnan(intergral_term2))=0;
         J_eq_69(n) = trapz(kx, trapz(ky,intergral_term1,2),1) + trapz(kx, trapz(ky,intergral_term2,2),1) ;  % [Eq.69 HH1991]% dimensions = Y x X = 1 x 2;
         
         %% Store the best fit spectra

@@ -114,6 +114,8 @@ classdef ERA5
             % sliced at the best match of the specified lat,lon and time
             % NOTE: lat and lon should be center of the sar transect.
 
+            % sar_time =  datetime MATLAB type
+
             era5_d2fd_all_5dims = obj.getAllWaveSpectrumD2FD;
             era5_lon_all = obj.getLongitude;
             era5_lat_all = obj.getLatitude;

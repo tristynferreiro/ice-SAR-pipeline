@@ -11,16 +11,16 @@ g = 9.81;
 sarPlotsON = 0;
 plotERA5 = 0;
 plotsON = 0;
-plotSARSpecGen = 1;
+plotSARSpecGen = 0;
 inversionPlots = 1;
 
 nonlinearity_order = 3;
-applyStepZero = 0;
+applyStepZero = 1;
 inversion_iterations = 50;
 
 %% ==================== SENTINEL DATA ====================
 % Import from file
-filepath = "/Users/tris/Documents/MSc/Data/Cape Point/subset_0_of_S1A_IW_GRDH_1SDV_20241014T173427_T173452_tnr_Cal_msk.nc";
+filepath = "/Users/tris/Documents/MSc/data/Cape Point Sentinel/subset_0_of_S1A_IW_GRDH_1SDV_20241014T173427_T173452_tnr_Cal_msk.nc";
 
 % Import metadata information for ease of figuring out where everything is
 % stored (this is just a dev step)
@@ -33,6 +33,7 @@ sentinel = Sentinel1A(filepath);
 sar_latGrid = sentinel.getLatitudeGrid;
 sar_lonGrid = sentinel.getLongitudeGrid;
 sar_data = sentinel.getCalibratedSARImage("VV");
+sar_data = (sar_data-mean(sar_data(:)))./mean(sar_data(:));
 
 sar_start_datetime = sentinel.AcquisitionStartDatetime; 
 sar_stop_datetime = sentinel.AcquisitionStopDatetime; 
@@ -95,7 +96,7 @@ if chosenTransect == 1
 end
 %% ==================== ERA5 DATA ====================
 % Get Parameters of the complete
-filepath = "/Users/tris/Documents/MSc/Data/Cape Point/CapePoint_ERA5-2Dws_20221014.nc";
+filepath = "/Users/tris/Documents/MSc/data/Cape Point ERA5/CapePoint_ERA5_2Dws_20241014.nc";
 
 % Store file info in MATLAB struct
 % ncinfo_era5 = ncinfo(filepath);
@@ -118,8 +119,9 @@ era5_direction_bins_degrees = era5_direction_bins_original_degrees;
 if plotERA5
     % Plot the 2D spectra
     figure('Position', [100, 100, 800, 300]);
-    subplot(1,2,1); plotFunctions.waveSpectrumAdjustedToSAR(era5_d2fd, era5_freq_bins, era5_direction_bins_degrees, 0.3, "Adjusted to SAR scene geometry 2-D Wave Spectrum, E(f,theta)"); % ADD AZ AND RANGE AXIS LABELS
-    subplot(1,2,2);plotFunctions.waveSpectrum2D(0,era5_d2fd, era5_freq_bins, era5_direction_bins_original_degrees, 0.3, "2-D Wave Spectrum, E(f,theta)");
+    subplot(1,2,1); plotFunctions.waveSpectrum2D(0,era5_d2fd, era5_freq_bins, era5_direction_bins_original_degrees, 0.3, "2-D Wave Spectrum, E(f,theta)");
+    subplot(1,2,2); plotFunctions.waveSpectrum2D(0,era5_d2fd, era5_freq_bins, era5_direction_bins_original_degrees, 0.3, "2-D Wave Spectrum, E(f,theta)");
+
 end
 
 %% ==================== H&H: First Guess Wave Number Spectrum ====================
@@ -183,10 +185,12 @@ disp(['Nonlinearity order: ', num2str(nonlinearity_order)]);
 %% ==================== H&H: Observed SAR Spectrum ====================
 
 disp('*==== Start SAR Spec Observed ====*');
-cutoff = 450; % This is dependent on th
-size_of_filter_window = 5; % The number of elements = dim_filt + 1
-width_of_gaussian_lobe = 2; % width_of_gaussian_lobe: Controls the spread of the Gaussian. A larger width means the Gaussian will be wider and smoother.
-[observed_sar_spectrum] = observedSARSpectrum(sar_transect_data, sar_transect_size, sar_sub_transect_size, sar_dx_range, first_guess_k, size_of_filter_window, width_of_gaussian_lobe, cutoff,first_guess_sar_spectrum,first_guess_kx_range, first_guess_ky_azimuth);
+cutoff_wavelength = 300; % Specify the length of the longest expected wave in the region
+size_of_filter_window = 6; % The number of elements = dim_filt + 1
+width_of_gaussian_lobe = 3; % width_of_gaussian_lobe: Controls the spread of the Gaussian. A larger width means the Gaussian will be wider and smoother.
+[observed_sar_spectrum] = observedSARSpectrum(sar_transect_data, sar_transect_size, sar_sub_transect_size, sar_dx_range, first_guess_k, size_of_filter_window, width_of_gaussian_lobe, cutoff_wavelength,first_guess_sar_spectrum,first_guess_kx_range, first_guess_ky_azimuth);
+
+figure; plotFunctions().generalSpectrumPlots(0,observed_sar_spectrum, first_guess_kx_range, first_guess_ky_azimuth,  ["SAR Spectrum, P^S_{obs}"," with Butterworth cutoff and Gaussian Filter"]);
 
 if plotsON
     figure('Position', [0, 0, 800, 300]);
@@ -196,7 +200,7 @@ end
 
 %% ==================== H&H: Step Zero ====================
 transect_number = 1; % This will mainly be used when looping through all transects in the ice part of the pipeline
-applyStepZero = 1;
+
 if  applyStepZero
     kx = first_guess_kx_range; % This is required for integration
     ky = first_guess_ky_azimuth; % This is required for integration
@@ -216,10 +220,10 @@ if  applyStepZero
     % anello  = 1 - 1./(1+(k0./modk).^7); % MIGHT NEED TO ADJUST POWER (5 in this case) FOR DIFFERENT CASES
     anello = 1;
     
-    rotation_angles = -10:1:10;
+    rotation_angles = -5:1:5;
     wave_number_mag_scales = 0.9:0.1:1.1;
-    energy_scales = 0.5:0.5:10;
-    % rotation_angles = 0;
+    energy_scales = 0.9:0.5:1.5;
+    % rotation_angles = -5;
     % wave_number_mag_scales = 1;
     % energy_scales =1;
 
@@ -241,6 +245,8 @@ if  applyStepZero
     % S_tmp_0(isnan(S_tmp_0))=0;      
     
     for i_rot = 1:length(rotation_angles)
+
+        disp(i_rot);
 
         % [Eq.77 HH1991]
         % theta = adjusted_direction_bins_degrees + rotation_angles(i_rot);
@@ -305,8 +311,13 @@ if  applyStepZero
                 term1_63(isnan(term1_63))=0;
                 term2_63 = mu .* ( (S_tmp_n - first_guess_wave_number_spectrum) ./ (B + first_guess_wave_number_spectrum) ).^2;
                 term2_63(isnan(term2_63))=0;
+                
+                % figure; 
+                % subplot(1,2,1); pcolor(term1_63);
+                % subplot(1,2,2); pcolor(term2_63);
+                % 
                 J_step0(i_rot, i_mag, i_energy) = trapz( kx_vector,trapz(ky_vector,term1_63,1),2) + trapz( kx_vector,trapz(ky_vector,term2_63,1),2);% dimensions = Y x X = 1 x 2;
-      
+                % 
                 if first_iteration_check
                     Jmax_step0 = J_step0(i_rot, i_mag, i_energy);
                     first_iteration_check = false;
@@ -505,12 +516,14 @@ disp(['Inital ERA5 Dir: ', num2str(era5_direction_derived)]);
 
 
 disp('--------------------------------------');
-filepath_single = "/Users/tris/Documents/MSc/Data/Cape Point/CapePoint_ERA5-single-2Dws_20241014.nc";
-[era5_datetime_single, era5_lon_single, era5_lat_single, era5_direction,era5_Tm,era5_Hs, era5_mdts,era5_mpts,era5_shts, era5_mdww, era5_mpww, era5_shww] = era5.getSingleValues(filepath_single, sar_transect_center_latitude,sar_transect_center_longitude,sar_start_datetime);
+date_str = num2str(year(era5_datetime))+""+num2str(month(era5_datetime))+""+num2str(day(era5_datetime));
+filepath_single = "/Users/tris/Documents/MSc/data/Cape Point ERA5/CapePoint_ERA5_single_2Dws_"+date_str+".nc";
+[era5_datetime_single, era5_lon_single, era5_lat_single, era5_direction,era5_Tm,era5_Hs, era5_mdts,era5_mpts,era5_shts, era5_mdww, era5_mpww, era5_shww] = era5.getSingleValues(filepath_single, era5_lat,era5_lon,sar_start_datetime);
 
 disp("Singles ERA5 date"); disp(era5_datetime_single)
 disp(['Singles ERA5 Hs: ', num2str(era5_Hs)]);
 disp(['Singles ERA5 Tm: ', num2str(era5_Tm)]);
+disp(['Singles ERA5 Dir: ', num2str(era5_direction)]);
 disp(['Singles ERA5 mdts: ', num2str(era5_mdts)]);
 disp(['Singles ERA5 mpts: ', num2str(era5_mpts)]);
 disp(['Singles ERA5 shts: ', num2str(era5_shts)]);
@@ -521,6 +534,33 @@ disp(['Singles ERA5 shww: ', num2str(era5_shww)]);
 wavelength_mww = ((era5_mpww)^2 * 9.81)/(2*pi);
 
 disp(['Singles ERA5 wavelength from mpww: ', num2str(wavelength_mww)])
+  
+disp('--------------------------------------');
+minutes = minute(era5_datetime);
+if length(minutes)<2
+    minutes_str = "0"+num2str(minute(era5_datetime));
+else
+    minutes_str = num2str(minute(era5_datetime));
+end
+date_time_str = date_str + ""+num2str(hour(era5_datetime)) +""+minutes_str;
+% Cape Point Buoy Data
+filepath_buoy = "/Users/tris/Documents/MSc/data/Cape Point Buoy/CapePointBuoy_"+date_time_str+".mat";
+buoy_data = load(filepath_buoy);
+
+disp("Buoy ERA5 date"); disp(buoy_data.date)
+disp(['Buoy ERA5 Hs: ', num2str(buoy_data.Hs)]);
+disp(['Buoy ERA5 Tp: ', num2str(buoy_data.Tp)]);
+disp(['Buoy ERA5 Dir: ', num2str(buoy_data.Dir)]);
+
+
+figure;
+    plot(f_r, S_1Dr, 'k', 'DisplayName', 'Recovered');
+    hold on;
+    plot(f, S_1D, 'r', 'DisplayName', 'Original');
+     hold on;
+    plot(buoy_data.frequencies,buoy_data.energy,'b', 'DisplayName', 'Buoy');
+    legend;
+    title('Original, Recovered, Buoy 1D Spectrum');  xlabel("Frequency [Hz]"); ylabel("Energy [m^2/Hz]")
 %% ==================== FUNCTIONS ====================
 function [S_kxky, Kx,Ky] = wavenumspec(plotsON, wavespec, dirBins, f_bins, interp_size, sar_dx_range)
     f = f_bins;
@@ -613,7 +653,7 @@ function [S_tmp0, Kx_tmp,Ky_tmp] = wavenumspecStepzero(plotsON, wavespectrum, di
     z = S_k_theta(:);
     % Define Cartesian grid
     dk = 2 * pi / (n * dx);
-    kx = 10*linspace(-pi/dx,pi/dx,n);
+    kx = 3*linspace(-pi/dx,pi/dx,3*n);
     kx = kx(kx~=0);
     ky = kx;
     [Kx_tmp, Ky_tmp] = meshgrid(kx,ky);

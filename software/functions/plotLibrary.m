@@ -214,7 +214,7 @@ function [] = waveSpectrum2D(polar, wave_spectrum, frequency_bins, direction_bin
         contour(frequency_bins,direction_bins,wave_spectrum,20);
         xlabel("Frequency"); ylabel('Direction [degrees]');
         title(plot_title); 
-        c = colorbar();c.Label.String = '[m^2/Hz/rad]';
+        c = colorbar();c.Label.String = '[m^2/Hz/degrees]';
     end
 end
 
