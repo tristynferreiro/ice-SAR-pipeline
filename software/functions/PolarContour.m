@@ -28,13 +28,12 @@ h = polar(px, py);
 delete(h);                                                                  
 hold on;                                                                     
 % Plot the contour graph onto the polar axis
-contour(px, py, dirSpecAtFreq, contourLines);  
+contour(px, py, dirSpecAtFreq, contourLines,"LineWidth",1);  
 % Plot aesthetics
 % Rotate and flip the plot to enable 0 degrees = North
 view([90 -90]);
 % Set axis ticks for defined values (frequency values in this case)
 set(gca, 'YTick', []);                                      
-colorbar('vert');                                                           
+colorbar('vert');  
 % ylabel('Direction [degrees] / Frequency [Hz]');                             
-xlabel('m^2/Hz/rad');
 end
